@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Result</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+body {
+    font-family: Arial;
+    background: #f8fafc;
+    padding: 40px;
+}
+.card {
+    background: white;
+    padding: 30px;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+    margin-bottom: 30px;
+}
+.chart-container {
+    width: 300px;      /* Control size here */
+    height: 180px;
+    margin: auto;
+}
+</style>
+</head>
+<body>
+
+<div class="card">
+    <h2>Risk Score</h2>
+
+    <div class="chart-container">
+        <canvas id="riskChart"></canvas>
+    </div>
+</div>
+
+<div class="card">
+    <h2>Contract Details</h2>
+    <ul>
+        <li><b>Type:</b> {{ result.contract_type }}</li>
+        <li><b>Parties:</b> {{ result.parties }}</li>
+        <li><b>Effective Date:</b> {{ result.effective_date }}</li>
+        <li><b>Governing Law:</b> {{ result.governing_law }}</li>
+        <li><b>Risk Level:</b> {{ result.risk_level }}</li>
+        <li><b>Risk Analysis:</b> {{ result.risk_analysis }}</li>
+    </ul>
+</div>
+
+<script>
+const score = parseFloat('{{ result.risk_score }}');
+console.log(score);
+
+new Chart(document.getElementById('riskChart'), {
+    type: 'doughnut',
+    data: {
+        datasets: [{
+            data: [score, 100-score],
+            backgroundColor: ['#ef4444', '#e5e7eb']
+        }]
+    },
+    options: {
+        responsive: true,
+        maintainAspectRatio: false,   // IMPORTANT
+        circumference: 180,
+        rotation: 270,
+        cutout: '70%',
+        plugins: {
+            tooltip: { enabled: false }
+        }
+    }
+});
+</script>
+
+</body>
+</html>

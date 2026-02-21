@@ -12,6 +12,18 @@ def clean_json_output(text):
 
     return text.strip()
 
+def add_risk_score(data):
+    score = 0
+
+    if data.get("risk_level") == "High":
+        score = 75
+    elif data.get("risk_level") == "Medium":
+        score = 50
+    elif data.get("risk_level") == "Low":
+        score = 25
+
+    data["risk_score"] = min(score, 100)
+    return data
 
 def analyze_contract(contract_text):
 

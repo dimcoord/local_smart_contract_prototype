@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Processing...</title>
+<style>
+body {
+    background: #0f172a;
+    color: white;
+    text-align: center;
+    padding-top: 150px;
+    font-family: Arial;
+}
+.spinner {
+    border: 8px solid #1e293b;
+    border-top: 8px solid #38bdf8;
+    border-radius: 50%;
+    width: 80px;
+    height: 80px;
+    animation: spin 1s linear infinite;
+    margin: auto;
+}
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+</style>
+
+<script>
+const jobId = "{{ job_id }}";
+
+function checkStatus() {
+    fetch(`/status/${jobId}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === "completed") {
+                window.location.href = `/result/${jobId}`;
+            }
+        });
+}
+
+setInterval(checkStatus, 2000);
+</script>
+
+</head>
+<body>
+
+<div class="spinner"></div>
+<h2>Analyzing Contract...</h2>
+<p>AI is evaluating clauses and risks.</p>
+
+</body>
+</html>
