@@ -1,0 +1,11 @@
+<h2>Generate Contract</h2>
+
+<form method="POST">
+    <textarea name="prompt" rows="6" cols="70"></textarea><br>
+    <button type="submit">Generate</button>
+</form>
+
+{% if result %}
+<h3>Generated Contract:</h3>
+<pre>{{ result }}</pre>
+{% endif %}

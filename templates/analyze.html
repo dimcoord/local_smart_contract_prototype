@@ -1,0 +1,26 @@
+<h2>Upload Contract (PDF)</h2>
+
+<form method="POST" enctype="multipart/form-data">
+    <input type="file" name="contract" required>
+    <button type="submit">Analyze</button>
+</form>
+
+{% if result %}
+<h3>Analysis Result:</h3>
+
+{% if result.error %}
+<pre>{{ result.error }}</pre>
+{% else %}
+<ul>
+    <li><b>Type:</b> {{ result.contract_type }}</li>
+    <li><b>Parties:</b> {{ result.parties }}</li>
+    <li><b>Effective Date:</b> {{ result.effective_date }}</li>
+    <li><b>Termination:</b> {{ result.termination_clause_summary }}</li>
+    <li><b>Payment:</b> {{ result.payment_terms }}</li>
+    <li><b>Governing Law:</b> {{ result.governing_law }}</li>
+    <li><b>Risk Level:</b> {{ result.risk_level }}</li>
+    <li><b>Risk Analysis:</b> {{ result.risk_analysis }}</li>
+</ul>
+{% endif %}
+
+{% endif %}
