@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Processing...</title>
+<title>{{ t("processing_title") }}</title>
 <style>
 body {
     background: #0f172a;
@@ -45,8 +45,13 @@ setInterval(checkStatus, 2000);
 <body>
 
 <div class="spinner"></div>
-<h2>Analyzing Contract...</h2>
-<p>AI is evaluating clauses and risks.</p>
+<h2>{{ t("analyzing_contract") }}</h2>
+<p>{{ t("ai_evaluating") }}</p>
+<p>
+    <a href="{{ url_for('set_language', lang=toggle_lang, next=request.path) }}" style="color:#38bdf8;">{{ t("switch_language") }}</a>
+    | <a href="/" style="color:#38bdf8;">{{ t("home") }}</a>
+    | <a href="/logout" style="color:#38bdf8;">{{ t("logout") }}</a>
+</p>
 
 </body>
 </html>

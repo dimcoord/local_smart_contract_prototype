@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>Result</title>
+<title>{{ t("view_result") }}</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <style>
 body {
@@ -26,7 +26,7 @@ body {
 <body>
 
 <div class="card">
-    <h2>Risk Score</h2>
+    <h2>{{ t("risk_score") }}</h2>
 
     <div class="chart-container">
         <canvas id="riskChart"></canvas>
@@ -34,16 +34,25 @@ body {
 </div>
 
 <div class="card">
-    <h2>Contract Details</h2>
+    <h2>{{ t("contract_details") }}</h2>
     <ul>
-        <li><b>Type:</b> {{ result.contract_type }}</li>
-        <li><b>Parties:</b> {{ result.parties }}</li>
-        <li><b>Effective Date:</b> {{ result.effective_date }}</li>
-        <li><b>Governing Law:</b> {{ result.governing_law }}</li>
-        <li><b>Risk Level:</b> {{ result.risk_level }}</li>
-        <li><b>Risk Analysis:</b> {{ result.risk_analysis }}</li>
+        <li><b>{{ t("type") }}:</b> {{ result.contract_type }}</li>
+        <li><b>{{ t("parties") }}:</b> {{ result.parties }}</li>
+        <li><b>{{ t("effective_date") }}:</b> {{ result.effective_date }}</li>
+        <li><b>{{ t("governing_law") }}:</b> {{ result.governing_law }}</li>
+        <li><b>{{ t("termination_clause_summary") }}:</b> {{ result.termination_clause_summary }}</li>
+        <li><b>{{ t("payment_terms") }}:</b> {{ result.payment_terms }}</li>
+        <li><b>{{ t("risk_level") }}:</b> {{ result.risk_level }}</li>
+        <li><b>{{ t("risk_analysis") }}:</b> {{ result.risk_analysis }}</li>
     </ul>
 </div>
+
+<p>
+    <a href="{{ url_for('set_language', lang=toggle_lang, next=request.path) }}">{{ t("switch_language") }}</a>
+    | <a href="/">{{ t("home") }}</a>
+    | <a href="/analyze">{{ t("analyze_another") }}</a>
+    | <a href="/logout">{{ t("logout") }}</a>
+</p>
 
 <script>
 const score = parseFloat('{{ result.risk_score }}');

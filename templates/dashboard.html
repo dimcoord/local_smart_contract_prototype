@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ t("dashboard") }} - {{ t("app_name") }}</title>
+    <style>
+        :root {
+            --bg: #f3f6f8;
+            --panel: #ffffff;
+            --sidebar: #1f2937;
+            --sidebar-muted: #9ca3af;
+            --sidebar-active: #111827;
+            --accent: #0f766e;
+            --text: #111827;
+            --border: #d1d5db;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(180deg, #f8fbfd 0%, var(--bg) 100%);
+            color: var(--text);
+        }
+
+        .layout {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 240px;
+            background: var(--sidebar);
+            color: #ffffff;
+            padding: 24px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .brand {
+            font-size: 20px;
+            font-weight: 700;
+            padding: 8px 10px 18px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+            margin-bottom: 8px;
+        }
+
+        .menu a {
+            display: block;
+            text-decoration: none;
+            color: #ffffff;
+            padding: 10px 12px;
+            border-radius: 8px;
+            margin-bottom: 6px;
+            background: transparent;
+        }
+
+        .menu a:hover {
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        .menu a.active {
+            background: var(--sidebar-active);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .lang-toggle {
+            display: inline-block;
+            margin: 4px 10px 8px;
+            padding: 8px 10px;
+            border-radius: 8px;
+            text-decoration: none;
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.06);
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .muted {
+            color: var(--sidebar-muted);
+            font-size: 13px;
+            margin-top: auto;
+            padding: 10px;
+        }
+
+        .main {
+            flex: 1;
+            padding: 28px;
+        }
+
+        .welcome {
+            margin: 0 0 16px;
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        .flash-list {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 16px;
+        }
+
+        .flash-item {
+            background: #ecfeff;
+            border: 1px solid #a5f3fc;
+            color: #155e75;
+            padding: 10px 12px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .cards {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 14px;
+            margin-bottom: 22px;
+        }
+
+        .card {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            box-shadow: 0 8px 24px rgba(17, 24, 39, 0.05);
+        }
+
+        .card h3 {
+            margin: 0 0 6px;
+            font-size: 14px;
+            color: #4b5563;
+            font-weight: 600;
+        }
+
+        .card p {
+            margin: 0;
+            font-size: 30px;
+            font-weight: 700;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .jobs-panel {
+            margin-top: 20px;
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(17, 24, 39, 0.05);
+            overflow: hidden;
+        }
+
+        .jobs-head {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border);
+            font-weight: 700;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th,
+        td {
+            text-align: left;
+            padding: 12px 16px;
+            border-bottom: 1px solid #e5e7eb;
+            font-size: 14px;
+        }
+
+        th {
+            color: #374151;
+            font-weight: 700;
+            background: #f9fafb;
+        }
+
+        .status {
+            display: inline-block;
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 999px;
+            font-weight: 700;
+        }
+
+        .status.processing {
+            background: #fff7ed;
+            color: #9a3412;
+            border: 1px solid #fed7aa;
+        }
+
+        .status.completed {
+            background: #ecfdf5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+
+        .status.finished {
+            background: #ecfdf5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+
+        .status.in-queue {
+            background: #f0f9ff;
+            color: #0c4a6e;
+            border: 1px solid #bae6fd;
+        }
+
+        .status.in-job {
+            background: #fff7ed;
+            color: #9a3412;
+            border: 1px solid #fed7aa;
+        }
+
+        .status.error {
+            background: #fee2e2;
+            color: #7f1d1d;
+            border: 1px solid #fecaca;
+        }
+
+        .view-link {
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 700;
+        }
+
+        .processing-text {
+            color: #6b7280;
+        }
+
+        .empty-state {
+            padding: 14px 16px;
+            color: #6b7280;
+        }
+
+        .button {
+            text-decoration: none;
+            background: var(--accent);
+            color: #ffffff;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-weight: 600;
+        }
+
+        .button.secondary {
+            background: #374151;
+        }
+
+        @media (max-width: 900px) {
+            .layout {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+            }
+
+            .cards {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar">
+            <div class="brand">{{ t("app_name") }}</div>
+            <nav class="menu">
+                <a class="active" href="/dashboard">{{ t("dashboard") }}</a>
+                <a href="/analyze">{{ t("analyze_contract") }}</a>
+                <a href="/generate">{{ t("generate_contract") }}</a>
+                <a href="/logout">{{ t("logout") }}</a>
+            </nav>
+            <a class="lang-toggle" href="{{ url_for('set_language', lang=toggle_lang, next=request.path) }}">{{ t("switch_language") }}</a>
+            <div class="muted">{{ t("signed_in_as") }} {{ session.get("username") }}</div>
+        </aside>
+
+        <main class="main">
+            <h1 class="welcome">{{ t("welcome_back") }}, {{ session.get("username") }}</h1>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <ul class="flash-list">
+                        {% for category, message in messages %}
+                            <li class="flash-item"><strong>{{ category|capitalize }}:</strong> {{ message }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            {% endwith %}
+
+            <section class="cards">
+                <div class="card">
+                    <h3>{{ t("total_analysis_jobs") }}</h3>
+                    <p>{{ total_jobs }}</p>
+                </div>
+                <div class="card">
+                    <h3>{{ t("completed_jobs") }}</h3>
+                    <p>{{ completed_jobs }}</p>
+                </div>
+                <div class="card">
+                    <h3>{{ t("processing_jobs") }}</h3>
+                    <p>{{ processing_jobs }}</p>
+                </div>
+            </section>
+
+            <section class="actions">
+                <a class="button" href="/analyze">{{ t("start_new_analysis") }}</a>
+                <a class="button secondary" href="/generate">{{ t("generate_new_contract") }}</a>
+            </section>
+
+            <section class="jobs-panel">
+                <div class="jobs-head">{{ t("your_analysis_jobs") }}</div>
+                {% if analysis_jobs %}
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>{{ t("job_id") }}</th>
+                                <th>{{ t("status") }}</th>
+                                <th>{{ t("started") }}</th>
+                                <th>{{ t("action") }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for job in analysis_jobs %}
+                                <tr>
+                                    <td>{{ job.job_id[:8] }}...</td>
+                                    <td>
+                                        <span class="status {{ job.status|replace(' ', '-') }}">
+                                            {% if job.status == "completed" %}
+                                                {{ t("completed") }}
+                                            {% else %}
+                                                {{ t("processing_jobs") }}
+                                            {% endif %}
+                                        </span>
+                                    </td>
+                                    <td>{{ job.created_at or "-" }}</td>
+                                    <td>
+                                        {% if job.status == "completed" %}
+                                            <a class="view-link" href="/result/{{ job.job_id }}">{{ t("view_result") }}</a>
+                                        {% else %}
+                                            <span class="processing-text">{{ t("still_processing") }}</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <div class="empty-state">{{ t("no_jobs") }}</div>
+                {% endif %}
+            </section>
+
+            <section class="jobs-panel">
+                <div class="jobs-head">{{ t("your_generated_contracts") }}</div>
+                {% if generation_jobs %}
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>{{ t("contract_title") }}</th>
+                                <th>{{ t("status") }}</th>
+                                <th>{{ t("created_at") }}</th>
+                                <th>{{ t("action") }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for job in generation_jobs %}
+                                <tr>
+                                    <td>{{ job.title }}</td>
+                                    <td>
+                                        <span class="status {{ job.status|replace(' ', '-') }}">
+                                            {% if job.status == "in queue" %}
+                                                {{ t("in_queue") }}
+                                            {% elif job.status == "in job" %}
+                                                {{ t("in_job") }}
+                                            {% elif job.status == "finished" %}
+                                                {{ t("finished") }}
+                                            {% else %}
+                                                {{ job.status }}
+                                            {% endif %}
+                                        </span>
+                                    </td>
+                                    <td>{{ job.created_at or "-" }}</td>
+                                    <td>
+                                        {% if job.status == "finished" %}
+                                            <a class="view-link" href="/generated-contract/{{ job.contract_id }}/download">{{ t("download_pdf") }}</a>
+                                        {% else %}
+                                            <span class="processing-text">{{ job.status }}</span>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                {% else %}
+                    <div class="empty-state">{{ t("no_generated_contracts_dashboard") }}</div>
+                {% endif %}
+            </section>
+        </main>
+    </div>
+</body>
+</html>

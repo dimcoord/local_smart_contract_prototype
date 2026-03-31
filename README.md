@@ -13,3 +13,9 @@ Aplikasi ini hanya bisa berjalan di laptop/komputer dengan kartu grafis diskret 
 5. Jalankan perintah `pip install -r requirements.txt`
 6. Jalankan perintah `ollama serve`
 7. Jalankan perintah `flask --app app --debug run`
+
+### Login system (SQLite)
+- Aplikasi sekarang memiliki autentikasi user dengan SQLite.
+- File database `users.db` dibuat otomatis saat aplikasi dijalankan.
+- Buka `/register` untuk membuat akun, lalu login di `/login`.
+- Fitur analyze dan generate hanya bisa diakses setelah login.

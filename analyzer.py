@@ -1,7 +1,7 @@
 import ollama
 import json
 
-MODEL = "qwen3:8b"
+MODEL = "qwen3:4b"
 
 def clean_json_output(text):
     text = text.strip()

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ t("login") }}</title>
+</head>
+<body>
+    <p><a href="{{ url_for('set_language', lang=toggle_lang, next=request.path) }}">{{ t("switch_language") }}</a></p>
+    <h2>{{ t("login") }}</h2>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            <ul>
+                {% for category, message in messages %}
+                    <li><b>{{ category|capitalize }}:</b> {{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+    {% endwith %}
+
+    <form method="POST">
+        <label>{{ t("username") }}</label><br>
+        <input type="text" name="username" required><br><br>
+
+        <label>{{ t("password") }}</label><br>
+        <input type="password" name="password" required><br><br>
+
+        <button type="submit">{{ t("login") }}</button>
+    </form>
+
+    <p>{{ t("do_not_have_account") }} <a href="/register">{{ t("register") }}</a></p>
+    <p><a href="/">{{ t("home") }}</a></p>
+</body>
+</html>

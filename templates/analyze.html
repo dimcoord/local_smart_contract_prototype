@@ -1,26 +1,208 @@
-<h2>Upload Contract (PDF)</h2>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ t("analyze_contract") }} - {{ t("app_name") }}</title>
+    <style>
+        :root {
+            --bg: #f3f6f8;
+            --panel: #ffffff;
+            --sidebar: #1f2937;
+            --sidebar-active: #111827;
+            --accent: #0f766e;
+            --accent-hover: #115e59;
+            --text: #111827;
+            --border: #d1d5db;
+        }
 
-<form method="POST" enctype="multipart/form-data">
-    <input type="file" name="contract" required>
-    <button type="submit">Analyze</button>
-</form>
+        * {
+            box-sizing: border-box;
+        }
 
-{% if result %}
-<h3>Analysis Result:</h3>
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(180deg, #f8fbfd 0%, var(--bg) 100%);
+            color: var(--text);
+        }
 
-{% if result.error %}
-<pre>{{ result.error }}</pre>
-{% else %}
-<ul>
-    <li><b>Type:</b> {{ result.contract_type }}</li>
-    <li><b>Parties:</b> {{ result.parties }}</li>
-    <li><b>Effective Date:</b> {{ result.effective_date }}</li>
-    <li><b>Termination:</b> {{ result.termination_clause_summary }}</li>
-    <li><b>Payment:</b> {{ result.payment_terms }}</li>
-    <li><b>Governing Law:</b> {{ result.governing_law }}</li>
-    <li><b>Risk Level:</b> {{ result.risk_level }}</li>
-    <li><b>Risk Analysis:</b> {{ result.risk_analysis }}</li>
-</ul>
-{% endif %}
+        .layout {
+            display: flex;
+            min-height: 100vh;
+        }
 
-{% endif %}
+        .sidebar {
+            width: 240px;
+            background: var(--sidebar);
+            color: #ffffff;
+            padding: 24px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .brand {
+            font-size: 20px;
+            font-weight: 700;
+            padding: 8px 10px 18px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+            margin-bottom: 8px;
+        }
+
+        .menu a {
+            display: block;
+            text-decoration: none;
+            color: #ffffff;
+            padding: 10px 12px;
+            border-radius: 8px;
+            margin-bottom: 6px;
+            background: transparent;
+        }
+
+        .menu a:hover {
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        .menu a.active {
+            background: var(--sidebar-active);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .lang-toggle {
+            display: inline-block;
+            margin: 4px 10px 8px;
+            padding: 8px 10px;
+            border-radius: 8px;
+            text-decoration: none;
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.06);
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .muted {
+            color: #9ca3af;
+            font-size: 13px;
+            margin-top: auto;
+            padding: 10px;
+        }
+
+        .main {
+            flex: 1;
+            padding: 28px;
+        }
+
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 18px;
+            box-shadow: 0 8px 24px rgba(17, 24, 39, 0.05);
+            max-width: 760px;
+        }
+
+        h1 {
+            margin: 0 0 16px;
+            font-size: 28px;
+        }
+
+        .flash-list {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 16px;
+        }
+
+        .flash-item {
+            background: #ecfeff;
+            border: 1px solid #a5f3fc;
+            color: #155e75;
+            padding: 10px 12px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        input[type="file"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            background: #f9fafb;
+            margin-bottom: 14px;
+        }
+
+        button {
+            border: none;
+            border-radius: 8px;
+            padding: 10px 14px;
+            background: var(--accent);
+            color: #ffffff;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: var(--accent-hover);
+        }
+
+        .help {
+            margin-top: 12px;
+            color: #4b5563;
+            font-size: 14px;
+        }
+
+        @media (max-width: 900px) {
+            .layout {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar">
+            <div class="brand">{{ t("app_name") }}</div>
+            <nav class="menu">
+                <a href="/dashboard">{{ t("dashboard") }}</a>
+                <a class="active" href="/analyze">{{ t("analyze_contract") }}</a>
+                <a href="/generate">{{ t("generate_contract") }}</a>
+                <a href="/logout">{{ t("logout") }}</a>
+            </nav>
+            <a class="lang-toggle" href="{{ url_for('set_language', lang=toggle_lang, next=request.path) }}">{{ t("switch_language") }}</a>
+            <div class="muted">{{ t("signed_in_as") }} {{ session.get("username") }}</div>
+        </aside>
+
+        <main class="main">
+            <h1>{{ t("upload_contract_pdf") }}</h1>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <ul class="flash-list">
+                        {% for category, message in messages %}
+                            <li class="flash-item"><strong>{{ category|capitalize }}:</strong> {{ message }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            {% endwith %}
+
+            <section class="panel">
+                <form method="POST" enctype="multipart/form-data">
+                    <label for="contract">{{ t("select_pdf_contract") }}</label>
+                    <input id="contract" type="file" name="contract" accept="application/pdf" required>
+                    <button type="submit">{{ t("start_analysis") }}</button>
+                </form>
+                <p class="help">{{ t("analyze_help") }}</p>
+            </section>
+        </main>
+    </div>
+</body>
+</html>

@@ -1,11 +1,352 @@
-<h2>Generate Contract</h2>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ t("generate_contract") }} - {{ t("app_name") }}</title>
+    <style>
+        :root {
+            --bg: #f3f6f8;
+            --panel: #ffffff;
+            --sidebar: #1f2937;
+            --sidebar-active: #111827;
+            --accent: #0f766e;
+            --accent-hover: #115e59;
+            --text: #111827;
+            --border: #d1d5db;
+        }
 
-<form method="POST">
-    <textarea name="prompt" rows="6" cols="70"></textarea><br>
-    <button type="submit">Generate</button>
-</form>
+        * {
+            box-sizing: border-box;
+        }
 
-{% if result %}
-<h3>Generated Contract:</h3>
-<pre>{{ result }}</pre>
-{% endif %}
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(180deg, #f8fbfd 0%, var(--bg) 100%);
+            color: var(--text);
+        }
+
+        .layout {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 240px;
+            background: var(--sidebar);
+            color: #ffffff;
+            padding: 24px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .brand {
+            font-size: 20px;
+            font-weight: 700;
+            padding: 8px 10px 18px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+            margin-bottom: 8px;
+        }
+
+        .menu a {
+            display: block;
+            text-decoration: none;
+            color: #ffffff;
+            padding: 10px 12px;
+            border-radius: 8px;
+            margin-bottom: 6px;
+            background: transparent;
+        }
+
+        .menu a:hover {
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        .menu a.active {
+            background: var(--sidebar-active);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .lang-toggle {
+            display: inline-block;
+            margin: 4px 10px 8px;
+            padding: 8px 10px;
+            border-radius: 8px;
+            text-decoration: none;
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.06);
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .muted {
+            color: #9ca3af;
+            font-size: 13px;
+            margin-top: auto;
+            padding: 10px;
+        }
+
+        .main {
+            flex: 1;
+            padding: 28px;
+        }
+
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 18px;
+            box-shadow: 0 8px 24px rgba(17, 24, 39, 0.05);
+            max-width: 920px;
+        }
+
+        h1 {
+            margin: 0 0 16px;
+            font-size: 28px;
+        }
+
+        .flash-list {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 16px;
+        }
+
+        .flash-item {
+            background: #ecfeff;
+            border: 1px solid #a5f3fc;
+            color: #155e75;
+            padding: 10px 12px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        textarea {
+            width: 100%;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            min-height: 140px;
+            resize: vertical;
+            margin-bottom: 14px;
+            font-family: inherit;
+        }
+
+        button {
+            border: none;
+            border-radius: 8px;
+            padding: 10px 14px;
+            background: var(--accent);
+            color: #ffffff;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background: var(--accent-hover);
+        }
+
+        .result {
+            margin-top: 18px;
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            white-space: pre-wrap;
+            line-height: 1.5;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-top: 10px;
+        }
+
+        .link-btn {
+            display: inline-block;
+            padding: 9px 12px;
+            border-radius: 8px;
+            text-decoration: none;
+            background: #0f172a;
+            color: #ffffff;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .link-btn:hover {
+            background: #1e293b;
+        }
+
+        .subpanel {
+            margin-top: 16px;
+            border-top: 1px dashed var(--border);
+            padding-top: 14px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 8px;
+        }
+
+        th,
+        td {
+            border-bottom: 1px solid var(--border);
+            padding: 8px;
+            text-align: left;
+            font-size: 14px;
+        }
+
+        th {
+            background: #f8fafc;
+        }
+
+        .status {
+            display: inline-block;
+            font-size: 12px;
+            padding: 4px 8px;
+            border-radius: 999px;
+            font-weight: 700;
+        }
+
+        .status.finished {
+            background: #ecfdf5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+
+        .status.in-queue {
+            background: #f0f9ff;
+            color: #0c4a6e;
+            border: 1px solid #bae6fd;
+        }
+
+        .status.in-job {
+            background: #fff7ed;
+            color: #9a3412;
+            border: 1px solid #fed7aa;
+        }
+
+        .status.pending {
+            background: #f0f9ff;
+            color: #0c4a6e;
+            border: 1px solid #bae6fd;
+        }
+
+        .status.error {
+            background: #fee2e2;
+            color: #7f1d1d;
+            border: 1px solid #fecaca;
+        }
+
+        @media (max-width: 900px) {
+            .layout {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar">
+            <div class="brand">{{ t("app_name") }}</div>
+            <nav class="menu">
+                <a href="/dashboard">{{ t("dashboard") }}</a>
+                <a href="/analyze">{{ t("analyze_contract") }}</a>
+                <a class="active" href="/generate">{{ t("generate_contract") }}</a>
+                <a href="/logout">{{ t("logout") }}</a>
+            </nav>
+            <a class="lang-toggle" href="{{ url_for('set_language', lang=toggle_lang, next=request.path) }}">{{ t("switch_language") }}</a>
+            <div class="muted">{{ t("signed_in_as") }} {{ session.get("username") }}</div>
+        </aside>
+
+        <main class="main">
+            <h1>{{ t("generate_contract") }}</h1>
+
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <ul class="flash-list">
+                        {% for category, message in messages %}
+                            <li class="flash-item"><strong>{{ category|capitalize }}:</strong> {{ message }}</li>
+                        {% endfor %}
+                    </ul>
+                {% endif %}
+            {% endwith %}
+
+            <section class="panel">
+                <form method="POST">
+                    <label for="title">{{ t("contract_title") }}</label>
+                    <input type="text" id="title" name="title" placeholder="{{ t('contract_title_hint') }}" style="width: 100%; border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 14px; font-family: inherit;">
+                    
+                    <label for="contract_lang">{{ t("contract_language") }}</label>
+                    <select id="contract_lang" name="contract_lang" style="width: 100%; border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 14px; font-family: inherit;">
+                        <option value="en">{{ t("english") }}</option>
+                        <option value="id">{{ t("bahasa_indonesia") }}</option>
+                    </select>
+                    
+                    <label for="prompt">{{ t("describe_contract") }}</label>
+                    <textarea id="prompt" name="prompt" placeholder="{{ t('generating_hint') }}"></textarea>
+                    <button type="submit">{{ t("generate") }}</button>
+                </form>
+
+                <div class="subpanel">
+                    <h3>{{ t("recent_generated_contracts") }}</h3>
+                    {% if recent_contracts %}
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>{{ t("contract_title") }}</th>
+                                    <th>{{ t("status") }}</th>
+                                    <th>{{ t("created_at") }}</th>
+                                    <th>{{ t("action") }}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for item in recent_contracts %}
+                                    <tr>
+                                        <td>{{ item["title"] or "Untitled Contract" }}</td>
+                                        <td>
+                                            <span class="status {{ item['status']|replace(' ', '-') }}">
+                                                {% if item["status"] == "in queue" %}
+                                                    {{ t("in_queue") }}
+                                                {% elif item["status"] == "in job" %}
+                                                    {{ t("in_job") }}
+                                                {% elif item["status"] == "finished" %}
+                                                    {{ t("finished") }}
+                                                {% else %}
+                                                    {{ item["status"] }}
+                                                {% endif %}
+                                            </span>
+                                        </td>
+                                        <td>{{ item["created_at"] }}</td>
+                                        <td>
+                                            {% if item["status"] == "finished" %}
+                                                <a class="link-btn" href="{{ url_for('download_generated_contract', contract_id=item['id']) }}">{{ t("download_pdf") }}</a>
+                                            {% else %}
+                                                <span style="color: #6b7280;">{{ item["status"] }}</span>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    {% else %}
+                        <p>{{ t("no_generated_contracts") }}</p>
+                    {% endif %}
+                </div>
+            </section>
+        </main>
+    </div>
+</body>
+</html>
