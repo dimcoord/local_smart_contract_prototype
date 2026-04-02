@@ -4,7 +4,7 @@
 <title>{{ t("processing_title") }}</title>
 <style>
 body {
-    background: #0f172a;
+    background: #130281;
     color: white;
     text-align: center;
     padding-top: 150px;
@@ -12,7 +12,7 @@ body {
 }
 .spinner {
     border: 8px solid #1e293b;
-    border-top: 8px solid #38bdf8;
+    border-top: 8px solid #385eca;
     border-radius: 50%;
     width: 80px;
     height: 80px;
@@ -48,9 +48,9 @@ setInterval(checkStatus, 2000);
 <h2>{{ t("analyzing_contract") }}</h2>
 <p>{{ t("ai_evaluating") }}</p>
 <p>
-    <a href="{{ url_for('set_language', lang=toggle_lang, next=request.path) }}" style="color:#38bdf8;">{{ t("switch_language") }}</a>
-    | <a href="/" style="color:#38bdf8;">{{ t("home") }}</a>
-    | <a href="/logout" style="color:#38bdf8;">{{ t("logout") }}</a>
+    <a href="{{ url_for('set_language', lang=toggle_lang, next=request.path) }}" style="color:#385eca;">{{ t("switch_language") }}</a>
+    | <a href="/" style="color:#385eca;">{{ t("home") }}</a>
+    | <a href="/logout" style="color:#385eca;">{{ t("logout") }}</a>
 </p>
 
 </body>

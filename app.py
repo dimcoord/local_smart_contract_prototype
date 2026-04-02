@@ -91,7 +91,7 @@ TRANSLATIONS = {
         "termination_clause_summary": "Termination Clause Summary",
         "payment_terms": "Payment Terms",
         "analyze_another": "Analyze Another",
-        "prototype": "LexivaAI Prototype",
+        "prototype": "LexivaAI",
         "logged_in_as": "Logged in as",
         "do_not_have_account": "Do not have an account?",
         "already_have_account": "Already have an account?",

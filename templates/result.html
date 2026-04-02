@@ -4,13 +4,13 @@
     <title>{{ t("view_result") }} - {{ t("app_name") }}</title>
     <style>
         :root {
-            --bg: #f3f6f8;
-            --panel: #ffffff;
-            --sidebar: #1f2937;
-            --sidebar-active: #111827;
-            --accent: #0f766e;
-            --text: #111827;
-            --border: #d1d5db;
+            --bg: #f6f1ff;
+            --panel: #eeefff;
+            --sidebar: #130281;
+            --sidebar-active: #130281;
+            --accent: #385eca;
+            --text: #130281;
+            --border: #ded6ff;
         }
 
         * {
@@ -20,7 +20,7 @@
         body {
             margin: 0;
             font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(180deg, #f8fbfd 0%, var(--bg) 100%);
+            background: linear-gradient(180deg, #f6f1ff 0%, var(--bg) 100%);
             color: var(--text);
         }
 
@@ -80,7 +80,7 @@
         }
 
         .muted {
-            color: #9ca3af;
+            color: #a0a1ff;
             font-size: 13px;
             margin-top: auto;
             padding: 10px;
@@ -137,21 +137,21 @@
         }
 
         .risk-low {
-            color: #166534;
-            background: #dcfce7;
+            color: #0b5a3b;
+            background: #c7f4d0;
             border-color: #86efac;
         }
 
         .risk-medium {
-            color: #92400e;
-            background: #fef3c7;
-            border-color: #fcd34d;
+            color: #854d0e;
+            background: #fde8a8;
+            border-color: #f59e0b;
         }
 
         .risk-high {
-            color: #991b1b;
-            background: #fee2e2;
-            border-color: #fca5a5;
+            color: #7f1d1d;
+            background: #fecccc;
+            border-color: #f87171;
         }
 
         .detail-list {
@@ -162,7 +162,7 @@
 
         .detail-list li {
             padding: 10px 0;
-            border-bottom: 1px solid #e5e7eb;
+            border-bottom: 1px solid #ded6ff;
             line-height: 1.45;
         }
 
@@ -174,12 +174,12 @@
             display: inline-block;
             min-width: 220px;
             font-weight: 700;
-            color: #374151;
+            color: #130281;
             vertical-align: top;
         }
 
         .value {
-            color: #111827;
+            color: #130281;
             word-break: break-word;
         }
 
@@ -201,7 +201,7 @@
         }
 
         .button.secondary {
-            background: #374151;
+            background: #a0a1ff;
         }
 
         @media (max-width: 900px) {
