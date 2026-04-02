@@ -333,10 +333,16 @@
                                     <td>{{ job.job_id[:8] }}...</td>
                                     <td>
                                         <span class="status {{ job.status|replace(' ', '-') }}">
-                                            {% if job.status == "completed" %}
+                                            {% if job.status == "in queue" %}
+                                                {{ t("in_queue") }}
+                                            {% elif job.status == "in job" %}
+                                                {{ t("in_job") }}
+                                            {% elif job.status == "completed" %}
                                                 {{ t("completed") }}
+                                            {% elif job.status == "error" %}
+                                                {{ job.status }}
                                             {% else %}
-                                                {{ t("processing_jobs") }}
+                                                {{ t("still_processing") }}
                                             {% endif %}
                                         </span>
                                     </td>

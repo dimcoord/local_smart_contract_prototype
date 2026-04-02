@@ -13,7 +13,7 @@ import ollama
 from fpdf import FPDF  # type: ignore[import-not-found]
 
 from utils import extract_text_from_pdf
-from analyzer import analyze_contract, add_risk_score, MODEL
+from analyzer import analyze_contract, MODEL
 from generator import generate_contract
 
 app = Flask(__name__)
@@ -34,13 +34,9 @@ if not os.path.exists(GENERATED_CONTRACTS_FOLDER):
 # In-memory job store
 jobs = {}
 
-# Job queue for sequential processing (FIFO)
+# Global job queue for sequential processing (FIFO) across all users and job types
 job_queue = queue.Queue()
 job_worker_running = False
-
-# Contract generation queue for sequential processing (FIFO)
-contract_queue = queue.Queue()
-contract_worker_running = False
 
 SUPPORTED_LANGUAGES = {"en", "id"}
 
@@ -246,100 +242,88 @@ def init_db():
     conn.close()
 
 
+def process_analysis_job(job_id, file_path):
+    job = jobs.get(job_id)
+    if not job:
+        return
+
+    try:
+        job["status"] = "in job"
+        text = extract_text_from_pdf(file_path)
+        result = analyze_contract(text)
+
+        job["status"] = "completed"
+        job["result"] = result
+        job["completed_at"] = datetime.utcnow().isoformat(timespec="seconds")
+    except Exception as e:
+        job["status"] = "error"
+        job["error"] = str(e)
+        job["completed_at"] = datetime.utcnow().isoformat(timespec="seconds")
+
+
+def process_contract_job(contract_id):
+    conn = get_db_connection()
+    contract = conn.execute(
+        "SELECT id, user_id, title, prompt, language FROM generated_contracts WHERE id = ?",
+        (contract_id,),
+    ).fetchone()
+    conn.close()
+
+    if not contract:
+        return
+
+    try:
+        conn = get_db_connection()
+        conn.execute(
+            "UPDATE generated_contracts SET status = ? WHERE id = ?",
+            ("in job", contract_id),
+        )
+        conn.commit()
+        conn.close()
+
+        result = generate_contract(contract["prompt"], language=contract["language"])
+
+        completed_at = datetime.utcnow().isoformat(timespec="seconds")
+        pdf_filename = f"contract_{contract['user_id']}_{uuid.uuid4().hex}.pdf"
+        pdf_path = os.path.join(GENERATED_CONTRACTS_FOLDER, pdf_filename)
+        create_contract_pdf(result, pdf_path, title=contract["title"])
+
+        conn = get_db_connection()
+        conn.execute(
+            """
+            UPDATE generated_contracts
+            SET status = ?, content = ?, pdf_filename = ?, completed_at = ?
+            WHERE id = ?
+            """,
+            ("finished", result, pdf_filename, completed_at, contract_id),
+        )
+        conn.commit()
+        conn.close()
+    except Exception:
+        conn = get_db_connection()
+        conn.execute(
+            "UPDATE generated_contracts SET status = ? WHERE id = ?",
+            ("error", contract_id),
+        )
+        conn.commit()
+        conn.close()
+
+
 def job_worker():
-    """Background worker thread that processes jobs one at a time from the queue."""
+    """Single global worker that processes analysis and generation jobs one at a time."""
     while True:
+        task = job_queue.get()
         try:
-            job_id, file_path = job_queue.get()
-            if job_id is None:  # Sentinel value to stop worker
+            if task is None:
                 break
-            
-            # Process the job
-            text = extract_text_from_pdf(file_path)
-            result = analyze_contract(text)
-            
-            if "error" not in result:
-                result = add_risk_score(result)
-            
-            # Update job status
-            job = jobs.get(job_id, {})
-            job["status"] = "completed"
-            job["result"] = result
-            job["completed_at"] = datetime.utcnow().isoformat(timespec="seconds")
-            jobs[job_id] = job
-            
-        except Exception as e:
-            # Handle errors gracefully
-            if job_id in jobs:
-                jobs[job_id]["status"] = "error"
-                jobs[job_id]["error"] = str(e)
-                jobs[job_id]["completed_at"] = datetime.utcnow().isoformat(timespec="seconds")
+
+            task_type = task.get("type")
+            if task_type == "analysis":
+                process_analysis_job(task["job_id"], task["file_path"])
+            elif task_type == "generation":
+                process_contract_job(task["contract_id"])
         finally:
             job_queue.task_done()
-
-
-def contract_worker():
-    """Background worker thread that generates contracts one at a time from the queue."""
-    while True:
-        try:
-            contract_id = contract_queue.get()
-            if contract_id is None:  # Sentinel value to stop worker
-                break
-            
-            conn = get_db_connection()
-            contract = conn.execute(
-                "SELECT id, user_id, title, prompt, language FROM generated_contracts WHERE id = ?",
-                (contract_id,)
-            ).fetchone()
-            conn.close()
-            
-            if not contract:
-                continue
-            
-            try:
-                # Update status to "in job"
-                conn = get_db_connection()
-                conn.execute(
-                    "UPDATE generated_contracts SET status = ? WHERE id = ?",
-                    ("in job", contract_id)
-                )
-                conn.commit()
-                conn.close()
-                
-                # Generate the contract
-                result = generate_contract(contract["prompt"], language=contract["language"])
-                
-                # Create PDF
-                created_at = datetime.utcnow().isoformat(timespec="seconds")
-                pdf_filename = f"contract_{contract['user_id']}_{uuid.uuid4().hex}.pdf"
-                pdf_path = os.path.join(GENERATED_CONTRACTS_FOLDER, pdf_filename)
-                create_contract_pdf(result, pdf_path, title=contract["title"])
-                
-                # Update database with completed status
-                conn = get_db_connection()
-                conn.execute(
-                    """
-                    UPDATE generated_contracts
-                    SET status = ?, content = ?, pdf_filename = ?, completed_at = ?
-                    WHERE id = ?
-                    """,
-                    ("finished", result, pdf_filename, created_at, contract_id)
-                )
-                conn.commit()
-                conn.close()
-                
-            except Exception as e:
-                # Mark contract as failed
-                conn = get_db_connection()
-                conn.execute(
-                    "UPDATE generated_contracts SET status = ? WHERE id = ?",
-                    ("error", contract_id)
-                )
-                conn.commit()
-                conn.close()
-                
-        finally:
-            contract_queue.task_done()
 
 
 def start_job_worker():
@@ -348,15 +332,6 @@ def start_job_worker():
     if not job_worker_running:
         job_worker_running = True
         worker_thread = threading.Thread(target=job_worker, daemon=True)
-        worker_thread.start()
-
-
-def start_contract_worker():
-    """Start the background contract worker thread."""
-    global contract_worker_running
-    if not contract_worker_running:
-        contract_worker_running = True
-        worker_thread = threading.Thread(target=contract_worker, daemon=True)
         worker_thread.start()
 
 
@@ -521,13 +496,9 @@ def localize_result(job, lang):
     if translated.get("risk_level") in risk_level_map:
         translated["risk_level"] = risk_level_map[translated["risk_level"]]
 
-    try:
-        translated = translate_result_with_ollama(base_result, lang)
-        if translated.get("risk_level") in risk_level_map:
-            translated["risk_level"] = risk_level_map[translated["risk_level"]]
-    except Exception:
-        # Fall back to the partially translated payload if model translation fails.
-        pass
+    # Keep result rendering non-blocking.
+    # Synchronous LLM translation here can cause the result page request to hang.
+    # UI labels are already localized via translation keys, so this preserves usability.
 
     localized[lang] = translated
     return translated
@@ -672,7 +643,11 @@ def dashboard():
     generation_jobs.sort(key=lambda item: item.get("created_at") or "", reverse=True)
 
     completed_jobs = sum(1 for job in analysis_jobs if job.get("status") == "completed")
-    processing_jobs = sum(1 for job in analysis_jobs if job.get("status") == "processing")
+    processing_jobs = sum(
+        1
+        for job in analysis_jobs
+        if job.get("status") in {"processing", "in queue", "in job"}
+    )
     
     return render_template(
         "dashboard.html",
@@ -707,14 +682,14 @@ def analyze():
 
         job_id = str(uuid.uuid4())
         jobs[job_id] = {
-            "status": "processing",
+            "status": "in queue",
             "user_id": session["user_id"],
             "created_at": datetime.utcnow().isoformat(timespec="seconds"),
             "completed_at": None,
         }
 
-        # Add job to queue instead of spawning a thread directly
-        job_queue.put((job_id, file_path))
+        # Add job to global queue (shared across all users and job types)
+        job_queue.put({"type": "analysis", "job_id": job_id, "file_path": file_path})
 
         return redirect(url_for("processing", job_id=job_id))
 
@@ -756,8 +731,8 @@ def generate():
         conn.commit()
         conn.close()
 
-        # Add to contract generation queue
-        contract_queue.put(generated_contract_id)
+        # Add to global queue (shared across all users and job types)
+        job_queue.put({"type": "generation", "contract_id": generated_contract_id})
         
         flash(tr("contract_saved_pdf"), "success")
         return redirect(url_for("generate"))
@@ -850,7 +825,6 @@ def result(job_id):
 
 init_db()
 start_job_worker()
-start_contract_worker()
 
 
 if __name__ == "__main__":

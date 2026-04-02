@@ -1,83 +1,282 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>{{ t("view_result") }}</title>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-<style>
-body {
-    font-family: Arial;
-    background: #f8fafc;
-    padding: 40px;
-}
-.card {
-    background: white;
-    padding: 30px;
-    border-radius: 12px;
-    box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-    margin-bottom: 30px;
-}
-.chart-container {
-    width: 300px;      /* Control size here */
-    height: 180px;
-    margin: auto;
-}
-</style>
+    <title>{{ t("view_result") }} - {{ t("app_name") }}</title>
+    <style>
+        :root {
+            --bg: #f3f6f8;
+            --panel: #ffffff;
+            --sidebar: #1f2937;
+            --sidebar-active: #111827;
+            --accent: #0f766e;
+            --text: #111827;
+            --border: #d1d5db;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(180deg, #f8fbfd 0%, var(--bg) 100%);
+            color: var(--text);
+        }
+
+        .layout {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 240px;
+            background: var(--sidebar);
+            color: #ffffff;
+            padding: 24px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .brand {
+            font-size: 20px;
+            font-weight: 700;
+            padding: 8px 10px 18px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+            margin-bottom: 8px;
+        }
+
+        .menu a {
+            display: block;
+            text-decoration: none;
+            color: #ffffff;
+            padding: 10px 12px;
+            border-radius: 8px;
+            margin-bottom: 6px;
+            background: transparent;
+        }
+
+        .menu a:hover {
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        .menu a.active {
+            background: var(--sidebar-active);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .lang-toggle {
+            display: inline-block;
+            margin: 4px 10px 8px;
+            padding: 8px 10px;
+            border-radius: 8px;
+            text-decoration: none;
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.06);
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .muted {
+            color: #9ca3af;
+            font-size: 13px;
+            margin-top: auto;
+            padding: 10px;
+        }
+
+        .main {
+            flex: 1;
+            padding: 28px;
+        }
+
+        h1 {
+            margin: 0 0 16px;
+            font-size: 28px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: 320px 1fr;
+            gap: 16px;
+            align-items: start;
+        }
+
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 18px;
+            box-shadow: 0 8px 24px rgba(17, 24, 39, 0.05);
+        }
+
+        .panel h2 {
+            margin: 0 0 14px;
+            font-size: 20px;
+        }
+
+        .risk-level-wrap {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px 0 8px;
+        }
+
+        .risk-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 150px;
+            padding: 12px 20px;
+            border-radius: 999px;
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: 0.3px;
+            border: 1px solid transparent;
+        }
+
+        .risk-low {
+            color: #166534;
+            background: #dcfce7;
+            border-color: #86efac;
+        }
+
+        .risk-medium {
+            color: #92400e;
+            background: #fef3c7;
+            border-color: #fcd34d;
+        }
+
+        .risk-high {
+            color: #991b1b;
+            background: #fee2e2;
+            border-color: #fca5a5;
+        }
+
+        .detail-list {
+            list-style: none;
+            margin: 0;
+            padding: 0;
+        }
+
+        .detail-list li {
+            padding: 10px 0;
+            border-bottom: 1px solid #e5e7eb;
+            line-height: 1.45;
+        }
+
+        .detail-list li:last-child {
+            border-bottom: none;
+        }
+
+        .label {
+            display: inline-block;
+            min-width: 220px;
+            font-weight: 700;
+            color: #374151;
+            vertical-align: top;
+        }
+
+        .value {
+            color: #111827;
+            word-break: break-word;
+        }
+
+        .actions {
+            margin-top: 16px;
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .button {
+            text-decoration: none;
+            background: var(--accent);
+            color: #ffffff;
+            padding: 10px 14px;
+            border-radius: 8px;
+            font-weight: 600;
+            display: inline-block;
+        }
+
+        .button.secondary {
+            background: #374151;
+        }
+
+        @media (max-width: 900px) {
+            .layout {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+            }
+
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            .label {
+                min-width: 0;
+                display: block;
+                margin-bottom: 4px;
+            }
+        }
+    </style>
 </head>
 <body>
+    <div class="layout">
+        <aside class="sidebar">
+            <div class="brand">{{ t("app_name") }}</div>
+            <nav class="menu">
+                <a href="/dashboard">{{ t("dashboard") }}</a>
+                <a class="active" href="/analyze">{{ t("analyze_contract") }}</a>
+                <a href="/generate">{{ t("generate_contract") }}</a>
+                <a href="/logout">{{ t("logout") }}</a>
+            </nav>
+            <a class="lang-toggle" href="{{ url_for('set_language', lang=toggle_lang, next=request.path) }}">{{ t("switch_language") }}</a>
+            <div class="muted">{{ t("signed_in_as") }} {{ session.get("username") }}</div>
+        </aside>
 
-<div class="card">
-    <h2>{{ t("risk_score") }}</h2>
+        <main class="main">
+            <h1>{{ t("view_result") }}</h1>
 
-    <div class="chart-container">
-        <canvas id="riskChart"></canvas>
+            <section class="grid">
+                <div class="panel">
+                    <h2>{{ t("risk_level") }}</h2>
+                    {% set rl = (result.risk_level or '')|lower %}
+                    {% set risk_class = 'risk-medium' %}
+                    {% if rl in ['low', 'rendah'] %}
+                        {% set risk_class = 'risk-low' %}
+                    {% elif rl in ['high', 'tinggi'] %}
+                        {% set risk_class = 'risk-high' %}
+                    {% endif %}
+                    <div class="risk-level-wrap">
+                        <div class="risk-badge {{ risk_class }}">{{ result.risk_level }}</div>
+                    </div>
+                </div>
+
+                <div class="panel">
+                    <h2>{{ t("contract_details") }}</h2>
+                    <ul class="detail-list">
+                        <li><span class="label">{{ t("type") }}</span> <span class="value">{{ result.contract_type }}</span></li>
+                        <li><span class="label">{{ t("parties") }}</span> <span class="value">{{ result.parties }}</span></li>
+                        <li><span class="label">{{ t("effective_date") }}</span> <span class="value">{{ result.effective_date }}</span></li>
+                        <li><span class="label">{{ t("governing_law") }}</span> <span class="value">{{ result.governing_law }}</span></li>
+                        <li><span class="label">{{ t("termination_clause_summary") }}</span> <span class="value">{{ result.termination_clause_summary }}</span></li>
+                        <li><span class="label">{{ t("payment_terms") }}</span> <span class="value">{{ result.payment_terms }}</span></li>
+                        <li><span class="label">{{ t("risk_level") }}</span> <span class="value">{{ result.risk_level }}</span></li>
+                        <li><span class="label">{{ t("risk_analysis") }}</span> <span class="value">{{ result.risk_analysis }}</span></li>
+                    </ul>
+                </div>
+            </section>
+
+            <section class="actions">
+                <a class="button" href="/analyze">{{ t("analyze_another") }}</a>
+                <a class="button secondary" href="/dashboard">{{ t("dashboard") }}</a>
+            </section>
+        </main>
     </div>
-</div>
-
-<div class="card">
-    <h2>{{ t("contract_details") }}</h2>
-    <ul>
-        <li><b>{{ t("type") }}:</b> {{ result.contract_type }}</li>
-        <li><b>{{ t("parties") }}:</b> {{ result.parties }}</li>
-        <li><b>{{ t("effective_date") }}:</b> {{ result.effective_date }}</li>
-        <li><b>{{ t("governing_law") }}:</b> {{ result.governing_law }}</li>
-        <li><b>{{ t("termination_clause_summary") }}:</b> {{ result.termination_clause_summary }}</li>
-        <li><b>{{ t("payment_terms") }}:</b> {{ result.payment_terms }}</li>
-        <li><b>{{ t("risk_level") }}:</b> {{ result.risk_level }}</li>
-        <li><b>{{ t("risk_analysis") }}:</b> {{ result.risk_analysis }}</li>
-    </ul>
-</div>
-
-<p>
-    <a href="{{ url_for('set_language', lang=toggle_lang, next=request.path) }}">{{ t("switch_language") }}</a>
-    | <a href="/">{{ t("home") }}</a>
-    | <a href="/analyze">{{ t("analyze_another") }}</a>
-    | <a href="/logout">{{ t("logout") }}</a>
-</p>
-
-<script>
-const score = parseFloat('{{ result.risk_score }}');
-console.log(score);
-
-new Chart(document.getElementById('riskChart'), {
-    type: 'doughnut',
-    data: {
-        datasets: [{
-            data: [score, 100-score],
-            backgroundColor: ['#ef4444', '#e5e7eb']
-        }]
-    },
-    options: {
-        responsive: true,
-        maintainAspectRatio: false,   // IMPORTANT
-        circumference: 180,
-        rotation: 270,
-        cutout: '70%',
-        plugins: {
-            tooltip: { enabled: false }
-        }
-    }
-});
-</script>
-
 </body>
 </html>

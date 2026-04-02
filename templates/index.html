@@ -1,31 +1,261 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ t("prototype") }}</title>
+    <style>
+        :root {
+            --bg: #f6f7f9;
+            --text: #111827;
+            --muted: #6b7280;
+            --surface: #ffffff;
+            --border: #e5e7eb;
+            --accent: #0f766e;
+            --accent-dark: #115e59;
+            --shadow: 0 14px 40px rgba(15, 23, 42, 0.08);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            color: var(--text);
+            background:
+                radial-gradient(1000px 500px at 10% -10%, #d1fae5 0%, rgba(209, 250, 229, 0) 60%),
+                radial-gradient(900px 450px at 90% 0%, #bfdbfe 0%, rgba(191, 219, 254, 0) 58%),
+                var(--bg);
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 22px;
+        }
+
+        .topbar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 14px;
+            margin-bottom: 26px;
+        }
+
+        .brand {
+            font-size: 20px;
+            font-weight: 800;
+            letter-spacing: -0.02em;
+            text-decoration: none;
+            color: var(--text);
+        }
+
+        .top-actions {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 9px 12px;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            text-decoration: none;
+            color: #1f2937;
+            background: rgba(255, 255, 255, 0.8);
+            font-weight: 600;
+            font-size: 13px;
+        }
+
+        .hero {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            box-shadow: var(--shadow);
+            padding: 42px;
+            margin-bottom: 20px;
+        }
+
+        .hero-title {
+            margin: 0;
+            font-size: clamp(34px, 5vw, 54px);
+            line-height: 1.05;
+            letter-spacing: -0.03em;
+            max-width: 800px;
+        }
+
+        .hero-sub {
+            margin: 14px 0 28px;
+            color: var(--muted);
+            font-size: 17px;
+            max-width: 680px;
+        }
+
+        .hero-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            border: 0;
+            border-radius: 12px;
+            padding: 12px 16px;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 14px;
+            transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+        }
+
+        .btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .btn-primary {
+            color: #ffffff;
+            background: var(--accent);
+            box-shadow: 0 10px 18px rgba(15, 118, 110, 0.24);
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-dark);
+        }
+
+        .btn-secondary {
+            color: #1f2937;
+            background: #f3f4f6;
+            border: 1px solid #d1d5db;
+        }
+
+        .flash-list {
+            list-style: none;
+            margin: 0 0 18px;
+            padding: 0;
+        }
+
+        .flash-item {
+            background: #ecfeff;
+            border: 1px solid #a5f3fc;
+            color: #155e75;
+            padding: 10px 12px;
+            border-radius: 10px;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 12px;
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            padding: 16px;
+            box-shadow: 0 6px 16px rgba(17, 24, 39, 0.05);
+        }
+
+        .card h3 {
+            margin: 0 0 8px;
+            font-size: 15px;
+        }
+
+        .card p {
+            margin: 0;
+            color: var(--muted);
+            font-size: 14px;
+            line-height: 1.45;
+        }
+
+        .user-note {
+            margin: 0 0 16px;
+            color: var(--muted);
+            font-size: 14px;
+            font-weight: 600;
+        }
+
+        @media (max-width: 900px) {
+            .hero {
+                padding: 28px;
+            }
+
+            .grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
 </head>
 <body>
-    <p><a href="{{ url_for('set_language', lang=toggle_lang, next=request.path) }}">{{ t("switch_language") }}</a></p>
-    <h1>{{ t("prototype") }}</h1>
+    <div class="container">
+        <header class="topbar">
+            <a class="brand" href="{{ url_for('home') }}">{{ t("app_name") }}</a>
+            <div class="top-actions">
+                <a class="pill" href="{{ url_for('set_language', lang=toggle_lang, next=request.path) }}">{{ t("switch_language") }}</a>
+                {% if session.get("user_id") %}
+                    <a class="pill" href="{{ url_for('dashboard') }}">{{ t("dashboard") }}</a>
+                    <a class="pill" href="{{ url_for('logout') }}">{{ t("logout") }}</a>
+                {% else %}
+                    <a class="pill" href="{{ url_for('login') }}">{{ t("login") }}</a>
+                    <a class="pill" href="{{ url_for('register') }}">{{ t("register") }}</a>
+                {% endif %}
+            </div>
+        </header>
 
-    {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-            <ul>
-                {% for category, message in messages %}
-                    <li><b>{{ category|capitalize }}:</b> {{ message }}</li>
-                {% endfor %}
-            </ul>
-        {% endif %}
-    {% endwith %}
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <ul class="flash-list">
+                    {% for category, message in messages %}
+                        <li class="flash-item"><strong>{{ category|capitalize }}:</strong> {{ message }}</li>
+                    {% endfor %}
+                </ul>
+            {% endif %}
+        {% endwith %}
 
-    {% if session.get("user_id") %}
-        <p>{{ t("logged_in_as") }} <b>{{ session.get("username") }}</b></p>
-        <a href="/dashboard">{{ t("dashboard") }}</a><br><br>
-        <a href="/analyze">{{ t("analyze_contract") }}</a><br><br>
-        <a href="/generate">{{ t("generate_contract") }}</a><br><br>
-        <a href="/logout">{{ t("logout") }}</a>
-    {% else %}
-        <a href="/login">{{ t("login") }}</a><br><br>
-        <a href="/register">{{ t("register") }}</a>
-    {% endif %}
+        <section class="hero">
+            <h1 class="hero-title">{{ t("prototype") }}</h1>
+            <p class="hero-sub">
+                AI-assisted contract analysis and generation in one secure workspace.
+                Review risk faster, generate drafts in minutes, and track all jobs from your dashboard.
+            </p>
+
+            {% if session.get("user_id") %}
+                <p class="user-note">{{ t("logged_in_as") }} {{ session.get("username") }}</p>
+                <div class="hero-actions">
+                    <a class="btn btn-primary" href="{{ url_for('dashboard') }}">{{ t("dashboard") }}</a>
+                    <a class="btn btn-secondary" href="{{ url_for('analyze') }}">{{ t("analyze_contract") }}</a>
+                    <a class="btn btn-secondary" href="{{ url_for('generate') }}">{{ t("generate_contract") }}</a>
+                </div>
+            {% else %}
+                <div class="hero-actions">
+                    <a class="btn btn-primary" href="{{ url_for('register') }}">{{ t("register") }}</a>
+                    <a class="btn btn-secondary" href="{{ url_for('login') }}">{{ t("login") }}</a>
+                </div>
+            {% endif %}
+        </section>
+
+        <section class="grid">
+            <article class="card">
+                <h3>{{ t("analyze_contract") }}</h3>
+                <p>Upload PDF contracts and get structured clause extraction with risk-focused summaries.</p>
+            </article>
+            <article class="card">
+                <h3>{{ t("generate_contract") }}</h3>
+                <p>Create contract drafts from prompts and export them into PDF with a clean layout.</p>
+            </article>
+            <article class="card">
+                <h3>{{ t("dashboard") }}</h3>
+                <p>Monitor queued and running jobs, then open analysis results and generated files.</p>
+            </article>
+        </section>
+    </div>
 </body>
 </html>
