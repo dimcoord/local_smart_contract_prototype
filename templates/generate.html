@@ -184,6 +184,34 @@
             background: #1e293b;
         }
 
+        .action-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .tiny-button {
+            display: inline-block;
+            border: 0;
+            border-radius: 7px;
+            padding: 7px 10px;
+            font-size: 12px;
+            font-weight: 700;
+            text-decoration: none;
+            color: #ffffff;
+            background: var(--accent);
+            cursor: pointer;
+        }
+
+        .tiny-button.secondary {
+            background: #6b7280;
+        }
+
+        .tiny-button.danger {
+            background: #b91c1c;
+        }
+
         .subpanel {
             margin-top: 16px;
             border-top: 1px dashed var(--border);
@@ -246,6 +274,24 @@
             border: 1px solid #fecaca;
         }
 
+        .status.accepted {
+            background: #ecfdf5;
+            color: #065f46;
+            border: 1px solid #a7f3d0;
+        }
+
+        .status.rejected {
+            background: #fee2e2;
+            color: #7f1d1d;
+            border: 1px solid #fecaca;
+        }
+
+        .status.pending {
+            background: #f0f9ff;
+            color: #0c4a6e;
+            border: 1px solid #bae6fd;
+        }
+
         @media (max-width: 900px) {
             .layout {
                 flex-direction: column;
@@ -265,6 +311,7 @@
                 <a href="/dashboard">{{ t("dashboard") }}</a>
                 <a href="/analyze">{{ t("analyze_contract") }}</a>
                 <a class="active" href="/generate">{{ t("generate_contract") }}</a>
+                <a href="/monitoring">{{ t("monitoring") }}</a>
                 <a href="/logout">{{ t("logout") }}</a>
             </nav>
             <a class="lang-toggle" href="{{ url_for('set_language', lang=toggle_lang, next=request.path) }}">{{ t("switch_language") }}</a>
@@ -286,6 +333,16 @@
 
             <section class="panel">
                 <form method="POST">
+                    <label for="template_type">{{ t("contract_template") }}</label>
+                    <select id="template_type" name="template_type" style="width: 100%; border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 14px; font-family: inherit;">
+                        <option value="general">{{ t("general_contract") }}</option>
+                        <option value="surat_perjanjian">{{ t("surat_perjanjian") }}</option>
+                        <option value="kontrak_kerja">{{ t("kontrak_kerja") }}</option>
+                        <option value="nda">{{ t("nda") }}</option>
+                        <option value="service_agreement">{{ t("service_agreement") }}</option>
+                        <option value="software_license">{{ t("software_license") }}</option>
+                    </select>
+
                     <label for="title">{{ t("contract_title") }}</label>
                     <input type="text" id="title" name="title" placeholder="{{ t('contract_title_hint') }}" style="width: 100%; border: 1px solid var(--border); border-radius: 8px; padding: 12px; margin-bottom: 14px; font-family: inherit;">
                     
@@ -307,7 +364,9 @@
                             <thead>
                                 <tr>
                                     <th>{{ t("contract_title") }}</th>
+                                    <th>{{ t("source_type") }}</th>
                                     <th>{{ t("status") }}</th>
+                                    <th>{{ t("review_status") }}</th>
                                     <th>{{ t("created_at") }}</th>
                                     <th>{{ t("action") }}</th>
                                 </tr>
@@ -316,6 +375,7 @@
                                 {% for item in recent_contracts %}
                                     <tr>
                                         <td>{{ item["title"] or "Untitled Contract" }}</td>
+                                        <td>{{ t("analysis") if item["source_type"] == "analysis" else t("generation") }}</td>
                                         <td>
                                             <span class="status {{ item['status']|replace(' ', '-') }}">
                                                 {% if item["status"] == "in queue" %}
@@ -329,13 +389,38 @@
                                                 {% endif %}
                                             </span>
                                         </td>
+                                        <td>
+                                            <span class="status {{ item['review_status']|replace(' ', '-') }}">
+                                                {% if item["review_status"] == "accepted" %}
+                                                    {{ t("accepted") }}
+                                                {% elif item["review_status"] == "rejected" %}
+                                                    {{ t("rejected") }}
+                                                {% else %}
+                                                    {{ t("pending_review") }}
+                                                {% endif %}
+                                            </span>
+                                        </td>
                                         <td>{{ item["created_at"] }}</td>
                                         <td>
-                                            {% if item["status"] == "finished" %}
-                                                <a class="link-btn" href="{{ url_for('download_generated_contract', contract_id=item['id']) }}">{{ t("download_pdf") }}</a>
-                                            {% else %}
-                                                <span style="color: #6b7280;">{{ item["status"] }}</span>
-                                            {% endif %}
+                                            <div class="action-row">
+                                                {% if item["status"] == "finished" and item["pdf_filename"] %}
+                                                    <a class="tiny-button" href="{{ url_for('download_generated_contract', contract_id=item['id']) }}">{{ t("download_pdf") }}</a>
+                                                {% endif %}
+                                                {% if item["status"] == "finished" %}
+                                                    <form method="POST" action="{{ url_for('accept_contract', contract_id=item['id']) }}">
+                                                        <button class="tiny-button" type="submit">{{ t("accept") }}</button>
+                                                    </form>
+                                                    <form method="POST" action="{{ url_for('reject_contract', contract_id=item['id']) }}">
+                                                        <button class="tiny-button secondary" type="submit">{{ t("reject") }}</button>
+                                                    </form>
+                                                    <a class="tiny-button secondary" href="{{ url_for('edit_contract', contract_id=item['id']) }}">{{ t("edit_acceptance") }}</a>
+                                                    <form method="POST" action="{{ url_for('delete_contract', contract_id=item['id']) }}" onsubmit="return confirm('Delete this contract?');">
+                                                        <button class="tiny-button danger" type="submit">{{ t("delete_contract") }}</button>
+                                                    </form>
+                                                {% else %}
+                                                    <span style="color: #6b7280;">{{ item["status"] }}</span>
+                                                {% endif %}
+                                            </div>
                                         </td>
                                     </tr>
                                 {% endfor %}

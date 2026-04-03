@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ t("edit_acceptance") }} - {{ t("app_name") }}</title>
+    <style>
+        :root {
+            --bg: #f6f1ff;
+            --panel: #eeefff;
+            --sidebar: #130281;
+            --sidebar-active: #130281;
+            --accent: #385eca;
+            --accent-hover: #130281;
+            --text: #130281;
+            --border: #ded6ff;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(180deg, #f6f1ff 0%, var(--bg) 100%);
+            color: var(--text);
+        }
+
+        .layout {
+            display: flex;
+            min-height: 100vh;
+        }
+
+        .sidebar {
+            width: 240px;
+            background: var(--sidebar);
+            color: #ffffff;
+            padding: 24px 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .brand {
+            font-size: 20px;
+            font-weight: 700;
+            padding: 8px 10px 18px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+            margin-bottom: 8px;
+        }
+
+        .menu a {
+            display: block;
+            text-decoration: none;
+            color: #ffffff;
+            padding: 10px 12px;
+            border-radius: 8px;
+            margin-bottom: 6px;
+            background: transparent;
+        }
+
+        .menu a:hover {
+            background: rgba(255, 255, 255, 0.12);
+        }
+
+        .menu a.active {
+            background: var(--sidebar-active);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+
+        .lang-toggle {
+            display: inline-block;
+            margin: 4px 10px 8px;
+            padding: 8px 10px;
+            border-radius: 8px;
+            text-decoration: none;
+            color: #ffffff;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            background: rgba(255, 255, 255, 0.06);
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        .muted {
+            color: #a0a1ff;
+            font-size: 13px;
+            margin-top: auto;
+            padding: 10px;
+        }
+
+        .main {
+            flex: 1;
+            padding: 28px;
+        }
+
+        .panel {
+            background: var(--panel);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 18px;
+            box-shadow: 0 8px 24px rgba(17, 24, 39, 0.05);
+            max-width: 920px;
+        }
+
+        h1 {
+            margin: 0 0 16px;
+            font-size: 28px;
+        }
+
+        .meta {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+
+        .meta-card {
+            background: #f8fafc;
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 12px;
+        }
+
+        .meta-label {
+            display: block;
+            font-size: 12px;
+            font-weight: 700;
+            color: #6b7280;
+            margin-bottom: 6px;
+        }
+
+        .meta-value {
+            font-weight: 700;
+            word-break: break-word;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin: 14px 0 8px;
+        }
+
+        input[type="text"],
+        textarea,
+        select {
+            width: 100%;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 12px;
+            font-family: inherit;
+            background: #ffffff;
+        }
+
+        textarea {
+            min-height: 140px;
+            resize: vertical;
+        }
+
+        .actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 18px;
+        }
+
+        .button {
+            border: 0;
+            border-radius: 8px;
+            padding: 10px 14px;
+            background: var(--accent);
+            color: #ffffff;
+            font-weight: 700;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .button.secondary {
+            background: #6b7280;
+        }
+
+        .button.danger {
+            background: #b91c1c;
+        }
+
+        @media (max-width: 900px) {
+            .layout {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+            }
+
+            .meta {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="layout">
+        <aside class="sidebar">
+            <div class="brand">{{ t("app_name") }}</div>
+            <nav class="menu">
+                <a href="/dashboard">{{ t("dashboard") }}</a>
+                <a href="/analyze">{{ t("analyze_contract") }}</a>
+                <a href="/generate">{{ t("generate_contract") }}</a>
+                <a href="/monitoring">{{ t("monitoring") }}</a>
+                <a href="/logout">{{ t("logout") }}</a>
+            </nav>
+            <a class="lang-toggle" href="{{ url_for('set_language', lang=toggle_lang, next=request.path) }}">{{ t("switch_language") }}</a>
+            <div class="muted">{{ t("signed_in_as") }} {{ session.get("username") }}</div>
+        </aside>
+
+        <main class="main">
+            <h1>{{ t("acceptance_editor") }}</h1>
+
+            <section class="panel">
+                <div class="meta">
+                    <div class="meta-card">
+                        <span class="meta-label">{{ t("contract_title_edit") }}</span>
+                        <div class="meta-value">{{ contract.title or "Untitled Contract" }}</div>
+                    </div>
+                    <div class="meta-card">
+                        <span class="meta-label">{{ t("source_type") }}</span>
+                        <div class="meta-value">{{ t("analysis") if contract.source_type == "analysis" else t("generation") }}</div>
+                    </div>
+                    <div class="meta-card">
+                        <span class="meta-label">{{ t("review_status") }}</span>
+                        <div class="meta-value">
+                            {% if contract.review_status == 'accepted' %}
+                                {{ t("accepted") }}
+                            {% elif contract.review_status == 'rejected' %}
+                                {{ t("rejected") }}
+                            {% else %}
+                                {{ t("pending_review") }}
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+
+                <form method="POST">
+                    <label for="title">{{ t("contract_title_edit") }}</label>
+                    <input type="text" id="title" name="title" value="{{ contract.title or '' }}">
+
+                    <label for="review_status">{{ t("review_status") }}</label>
+                    <select id="review_status" name="review_status">
+                        <option value="pending" {% if (contract.review_status or 'pending') == 'pending' %}selected{% endif %}>{{ t("pending_review") }}</option>
+                        <option value="accepted" {% if contract.review_status == 'accepted' %}selected{% endif %}>{{ t("accepted") }}</option>
+                        <option value="rejected" {% if contract.review_status == 'rejected' %}selected{% endif %}>{{ t("rejected") }}</option>
+                    </select>
+
+                    <label for="review_note">{{ t("review_note") }}</label>
+                    <textarea id="review_note" name="review_note" placeholder="{{ t('review_note') }}">{{ contract.review_note or '' }}</textarea>
+
+                    <div class="actions">
+                        <button class="button" type="submit">{{ t("save_changes") }}</button>
+                        <a class="button secondary" href="{{ url_for('dashboard') }}">{{ t("dashboard") }}</a>
+                    </div>
+                </form>
+
+                <form method="POST" action="{{ url_for('delete_contract', contract_id=contract.id) }}" onsubmit="return confirm('Delete this contract?');" style="margin-top: 10px;">
+                    <button class="button danger" type="submit">{{ t("delete_contract") }}</button>
+                </form>
+            </section>
+        </main>
+    </div>
+</body>
+</html>

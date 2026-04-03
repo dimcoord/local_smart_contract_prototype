@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>{{ t("dashboard") }} - {{ t("app_name") }}</title>
+    <title>{{ t("monitoring") }} - {{ t("app_name") }}</title>
     <style>
         :root {
             --bg: #f6f1ff;
@@ -92,32 +92,20 @@
             padding: 28px;
         }
 
-        .welcome {
-            margin: 0 0 16px;
-            font-size: 28px;
-            font-weight: 700;
-        }
-
-        .flash-list {
-            list-style: none;
-            padding: 0;
-            margin: 0 0 16px;
-        }
-
-        .flash-item {
-            background: #e0d5ff;
-            border: 1px solid #ded6ff;
-            color: #130281;
-            padding: 10px 12px;
-            border-radius: 8px;
-            margin-bottom: 8px;
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+            flex-wrap: wrap;
+            margin-bottom: 18px;
         }
 
         .cards {
             display: grid;
             grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 14px;
-            margin-bottom: 22px;
+            margin: 0 0 22px;
         }
 
         .card {
@@ -141,14 +129,27 @@
             font-weight: 700;
         }
 
-        .actions {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
+        h1 {
+            margin: 0;
+            font-size: 28px;
         }
 
-        .jobs-panel {
-            margin-top: 20px;
+        .flash-list {
+            list-style: none;
+            padding: 0;
+            margin: 0 0 16px;
+        }
+
+        .flash-item {
+            background: #e0d5ff;
+            border: 1px solid #ded6ff;
+            color: #130281;
+            padding: 10px 12px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+        }
+
+        .panel {
             background: var(--panel);
             border: 1px solid var(--border);
             border-radius: 12px;
@@ -156,7 +157,7 @@
             overflow: hidden;
         }
 
-        .jobs-head {
+        .panel-head {
             padding: 14px 16px;
             border-bottom: 1px solid var(--border);
             font-weight: 700;
@@ -173,6 +174,7 @@
             padding: 12px 16px;
             border-bottom: 1px solid #e5e7eb;
             font-size: 14px;
+            vertical-align: top;
         }
 
         th {
@@ -189,49 +191,24 @@
             font-weight: 700;
         }
 
-        .status.processing {
-            background: #fff7ed;
-            color: #9a3412;
-            border: 1px solid #fed7aa;
-        }
-
-        .status.completed {
-            background: #ecfdf5;
-            color: #065f46;
-            border: 1px solid #a7f3d0;
-        }
-
-        .status.finished {
-            background: #ecfdf5;
-            color: #065f46;
-            border: 1px solid #a7f3d0;
-        }
-
-        .status.in-queue {
-            background: #f0f9ff;
-            color: #0c4a6e;
-            border: 1px solid #bae6fd;
-        }
-
+        .status.processing,
+        .status.in-queue,
         .status.in-job {
             background: #fff7ed;
             color: #9a3412;
             border: 1px solid #fed7aa;
         }
 
-        .status.error {
-            background: #fee2e2;
-            color: #7f1d1d;
-            border: 1px solid #fecaca;
-        }
-
+        .status.completed,
+        .status.finished,
         .status.accepted {
             background: #ecfdf5;
             color: #065f46;
             border: 1px solid #a7f3d0;
         }
 
-        .status.rejected {
+        .status.rejected,
+        .status.error {
             background: #fee2e2;
             color: #7f1d1d;
             border: 1px solid #fecaca;
@@ -241,16 +218,6 @@
             background: #f0f9ff;
             color: #0c4a6e;
             border: 1px solid #bae6fd;
-        }
-
-        .view-link {
-            color: var(--accent);
-            text-decoration: none;
-            font-weight: 700;
-        }
-
-        .processing-text {
-            color: #6b7280;
         }
 
         .action-row {
@@ -280,22 +247,19 @@
             background: #b91c1c;
         }
 
+        .view-link {
+            color: var(--accent);
+            text-decoration: none;
+            font-weight: 700;
+        }
+
         .empty-state {
             padding: 14px 16px;
             color: #6b7280;
         }
 
-        .button {
-            text-decoration: none;
-            background: var(--accent);
-            color: #ffffff;
-            padding: 10px 14px;
-            border-radius: 8px;
-            font-weight: 600;
-        }
-
-        .button.secondary {
-            background: #374151;
+        .status-text {
+            color: #6b7280;
         }
 
         @media (max-width: 900px) {
@@ -307,8 +271,9 @@
                 width: 100%;
             }
 
-            .cards {
-                grid-template-columns: 1fr;
+            th,
+            td {
+                padding: 10px 12px;
             }
         }
     </style>
@@ -318,10 +283,10 @@
         <aside class="sidebar">
             <div class="brand">{{ t("app_name") }}</div>
             <nav class="menu">
-                <a class="active" href="/dashboard">{{ t("dashboard") }}</a>
+                <a href="/dashboard">{{ t("dashboard") }}</a>
                 <a href="/analyze">{{ t("analyze_contract") }}</a>
                 <a href="/generate">{{ t("generate_contract") }}</a>
-                <a href="/monitoring">{{ t("monitoring") }}</a>
+                <a class="active" href="/monitoring">{{ t("monitoring") }}</a>
                 <a href="/logout">{{ t("logout") }}</a>
             </nav>
             <a class="lang-toggle" href="{{ url_for('set_language', lang=toggle_lang, next=request.path) }}">{{ t("switch_language") }}</a>
@@ -329,17 +294,9 @@
         </aside>
 
         <main class="main">
-            <h1 class="welcome">{{ t("welcome_back") }}, {{ session.get("username") }}</h1>
-
-            {% with messages = get_flashed_messages(with_categories=true) %}
-                {% if messages %}
-                    <ul class="flash-list">
-                        {% for category, message in messages %}
-                            <li class="flash-item"><strong>{{ category|capitalize }}:</strong> {{ message }}</li>
-                        {% endfor %}
-                    </ul>
-                {% endif %}
-            {% endwith %}
+            <div class="header">
+                <h1>{{ t("monitoring") }}</h1>
+            </div>
 
             <section class="cards">
                 <div class="card">
@@ -356,102 +313,89 @@
                 </div>
             </section>
 
-            <section class="actions">
-                <a class="button" href="/analyze">{{ t("start_new_analysis") }}</a>
-                <a class="button secondary" href="/generate">{{ t("generate_new_contract") }}</a>
-            </section>
-
-            <section class="jobs-panel">
-                <div class="jobs-head">{{ t("your_analysis_jobs") }}</div>
-                {% if analysis_jobs %}
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>{{ t("job_id") }}</th>
-                                <th>{{ t("status") }}</th>
-                                <th>{{ t("started") }}</th>
-                                <th>{{ t("action") }}</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for job in analysis_jobs %}
-                                <tr>
-                                    <td>{{ job.job_id[:8] }}...</td>
-                                    <td>
-                                        <span class="status {{ job.status|replace(' ', '-') }}">
-                                            {% if job.status == "in queue" %}
-                                                {{ t("in_queue") }}
-                                            {% elif job.status == "in job" %}
-                                                {{ t("in_job") }}
-                                            {% elif job.status == "completed" %}
-                                                {{ t("completed") }}
-                                            {% elif job.status == "error" %}
-                                                {{ job.status }}
-                                            {% else %}
-                                                {{ t("still_processing") }}
-                                            {% endif %}
-                                        </span>
-                                    </td>
-                                    <td>{{ job.created_at or "-" }}</td>
-                                    <td>
-                                        {% if job.status == "completed" %}
-                                            <a class="view-link" href="/result/{{ job.job_id }}">{{ t("view_result") }}</a>
-                                        {% else %}
-                                            <span class="processing-text">{{ t("still_processing") }}</span>
-                                        {% endif %}
-                                    </td>
-                                </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                {% else %}
-                    <div class="empty-state">{{ t("no_jobs") }}</div>
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <ul class="flash-list">
+                        {% for category, message in messages %}
+                            <li class="flash-item"><strong>{{ category|capitalize }}:</strong> {{ message }}</li>
+                        {% endfor %}
+                    </ul>
                 {% endif %}
-            </section>
+            {% endwith %}
 
-            <section class="jobs-panel">
-                <div class="jobs-head">{{ t("your_generated_contracts") }}</div>
-                {% if generation_jobs %}
+            <section class="panel">
+                <div class="panel-head">{{ t("contract_monitoring") }}</div>
+                {% if contract_items %}
                     <table>
                         <thead>
                             <tr>
                                 <th>{{ t("contract_title") }}</th>
+                                <th>{{ t("source_type") }}</th>
                                 <th>{{ t("status") }}</th>
+                                <th>{{ t("review_status") }}</th>
                                 <th>{{ t("created_at") }}</th>
                                 <th>{{ t("action") }}</th>
                             </tr>
                         </thead>
                         <tbody>
-                            {% for job in generation_jobs %}
+                            {% for item in contract_items %}
                                 <tr>
-                                    <td>{{ job.title }}</td>
+                                    <td>{{ item.title }}</td>
+                                    <td>{{ t("analysis") if item.source_type == "analysis" else t("generation") }}</td>
                                     <td>
-                                        <span class="status {{ job.status|replace(' ', '-') }}">
-                                            {% if job.status == "in queue" %}
+                                        <span class="status {{ item.status|replace(' ', '-') }}">
+                                            {% if item.status == "in queue" %}
                                                 {{ t("in_queue") }}
-                                            {% elif job.status == "in job" %}
+                                            {% elif item.status == "in job" %}
                                                 {{ t("in_job") }}
-                                            {% elif job.status == "finished" %}
+                                            {% elif item.status == "finished" %}
                                                 {{ t("finished") }}
+                                            {% elif item.status == "error" %}
+                                                {{ item.status }}
                                             {% else %}
-                                                {{ job.status }}
+                                                {{ item.status }}
                                             {% endif %}
                                         </span>
                                     </td>
-                                    <td>{{ job.created_at or "-" }}</td>
                                     <td>
-                                        {% if job.status == "finished" %}
-                                            <a class="view-link" href="/generated-contract/{{ job.contract_id }}/download">{{ t("download_pdf") }}</a>
-                                        {% else %}
-                                            <span class="processing-text">{{ job.status }}</span>
-                                        {% endif %}
+                                        <span class="status {{ item.review_status|replace(' ', '-') }}">
+                                            {% if item.review_status == "accepted" %}
+                                                {{ t("accepted") }}
+                                            {% elif item.review_status == "rejected" %}
+                                                {{ t("rejected") }}
+                                            {% else %}
+                                                {{ t("pending_review") }}
+                                            {% endif %}
+                                        </span>
+                                    </td>
+                                    <td>{{ item.created_at or "-" }}</td>
+                                    <td>
+                                        <div class="action-row">
+                                            {% if item.status == "finished" and item.pdf_filename %}
+                                                <a class="tiny-button" href="{{ url_for('download_generated_contract', contract_id=item.id) }}">{{ t("download_pdf") }}</a>
+                                            {% endif %}
+                                            {% if item.status == "finished" %}
+                                                <form method="POST" action="{{ url_for('accept_contract', contract_id=item.id) }}">
+                                                    <button class="tiny-button" type="submit">{{ t("accept") }}</button>
+                                                </form>
+                                                <form method="POST" action="{{ url_for('reject_contract', contract_id=item.id) }}">
+                                                    <button class="tiny-button secondary" type="submit">{{ t("reject") }}</button>
+                                                </form>
+                                                <a class="tiny-button secondary" href="{{ url_for('edit_contract', contract_id=item.id) }}">{{ t("edit_acceptance") }}</a>
+                                                <form method="POST" action="{{ url_for('delete_contract', contract_id=item.id) }}" onsubmit="return confirm('Delete this contract?');">
+                                                    <button class="tiny-button danger" type="submit">{{ t("delete_contract") }}</button>
+                                                </form>
+                                            {% else %}
+                                                <span class="status-text">{{ t("processing") }}</span>
+                                            {% endif %}
+                                        </div>
                                     </td>
                                 </tr>
                             {% endfor %}
                         </tbody>
                     </table>
                 {% else %}
-                    <div class="empty-state">{{ t("no_generated_contracts_dashboard") }}</div>
+                    <div class="empty-state">{{ t("no_contracts") }}</div>
                 {% endif %}
             </section>
         </main>

@@ -51,7 +51,7 @@ TRANSLATIONS = {
         "register": "Register",
         "signed_in_as": "Signed in as",
         "welcome_back": "Welcome back",
-        "total_analysis_jobs": "Total Analysis Jobs",
+        "total_jobs": "Total Jobs",
         "completed_jobs": "Completed Jobs",
         "processing_jobs": "Processing Jobs",
         "start_new_analysis": "Start New Analysis",
@@ -110,15 +110,47 @@ TRANSLATIONS = {
         "download_pdf": "Download PDF",
         "contract_saved_pdf": "Contract saved as PDF.",
         "recent_generated_contracts": "Recent Generated Contracts",
+        "contract_monitoring": "Contract Monitoring",
         "created_at": "Created At",
         "no_generated_contracts": "No generated contracts yet.",
+        "no_contracts": "No contracts yet.",
         "contract_language": "Contract Language",
+        "contract_template": "Contract Template",
+        "choose_contract_template": "Choose the contract purpose",
+        "general_contract": "General Contract",
+        "surat_perjanjian": "Agreement Letter",
+        "kontrak_kerja": "Employment Contract",
+        "nda": "Non-Disclosure Agreement",
+        "service_agreement": "Service Agreement",
+        "software_license": "Software License Agreement",
         "english": "English",
         "bahasa_indonesia": "Bahasa Indonesia",
         "your_generated_contracts": "Your Generated Contracts",
         "in_queue": "In Queue",
         "in_job": "In Job",
         "finished": "Finished",
+        "processing": "Processing",
+        "review_status": "Review Status",
+        "pending_review": "Pending Review",
+        "accepted": "Accepted",
+        "rejected": "Rejected",
+        "accept": "Accept",
+        "reject": "Reject",
+        "edit_acceptance": "Edit Acceptance",
+        "delete_contract": "Delete Contract",
+        "save_changes": "Save Changes",
+        "contract_accepted": "Contract accepted.",
+        "contract_rejected": "Contract rejected.",
+        "changes_saved": "Changes saved.",
+        "contract_deleted": "Contract deleted.",
+        "review_note": "Review Note",
+        "contract_title_edit": "Contract Title",
+        "acceptance_editor": "Acceptance Editor",
+        "source_type": "Source Type",
+        "analysis": "Analysis",
+        "generation": "Generation",
+        "contract_queued": "Contract queued for monitoring.",
+        "monitoring": "Monitoring",
         "no_generated_contracts_dashboard": "No generated contracts yet.",
     },
     "id": {
@@ -131,7 +163,7 @@ TRANSLATIONS = {
         "register": "Daftar",
         "signed_in_as": "Masuk sebagai",
         "welcome_back": "Selamat datang kembali",
-        "total_analysis_jobs": "Total Pekerjaan Analisis",
+        "total_jobs": "Total Pekerjaan",
         "completed_jobs": "Pekerjaan Selesai",
         "processing_jobs": "Pekerjaan Diproses",
         "start_new_analysis": "Mulai Analisis Baru",
@@ -190,15 +222,47 @@ TRANSLATIONS = {
         "download_pdf": "Unduh PDF",
         "contract_saved_pdf": "Kontrak disimpan sebagai PDF.",
         "recent_generated_contracts": "Kontrak Terbaru yang Dibuat",
+        "contract_monitoring": "Monitoring Kontrak",
         "created_at": "Dibuat Pada",
         "no_generated_contracts": "Belum ada kontrak yang dibuat.",
+        "no_contracts": "Belum ada kontrak.",
         "contract_language": "Bahasa Kontrak",
+        "contract_template": "Template Kontrak",
+        "choose_contract_template": "Pilih tujuan kontrak",
+        "general_contract": "Kontrak Umum",
+        "surat_perjanjian": "Surat Perjanjian",
+        "kontrak_kerja": "Kontrak Kerja",
+        "nda": "Perjanjian Kerahasiaan",
+        "service_agreement": "Perjanjian Jasa",
+        "software_license": "Perjanjian Lisensi Perangkat Lunak",
         "english": "Bahasa Inggris",
         "bahasa_indonesia": "Bahasa Indonesia",
         "your_generated_contracts": "Kontrak Yang Dibuat",
         "in_queue": "Antri",
         "in_job": "Sedang Dibuat",
         "finished": "Selesai",
+        "processing": "Diproses",
+        "review_status": "Status Review",
+        "pending_review": "Menunggu Review",
+        "accepted": "Diterima",
+        "rejected": "Ditolak",
+        "accept": "Setujui",
+        "reject": "Tolak",
+        "edit_acceptance": "Edit Persetujuan",
+        "delete_contract": "Hapus Kontrak",
+        "save_changes": "Simpan Perubahan",
+        "contract_accepted": "Kontrak diterima.",
+        "contract_rejected": "Kontrak ditolak.",
+        "changes_saved": "Perubahan disimpan.",
+        "contract_deleted": "Kontrak dihapus.",
+        "review_note": "Catatan Review",
+        "contract_title_edit": "Judul Kontrak",
+        "acceptance_editor": "Editor Persetujuan",
+        "source_type": "Sumber",
+        "analysis": "Analisis",
+        "generation": "Generate",
+        "contract_queued": "Kontrak masuk antrean monitoring.",
+        "monitoring": "Monitoring",
         "no_generated_contracts_dashboard": "Belum ada kontrak yang dibuat.",
     },
 }
@@ -232,11 +296,45 @@ def init_db():
             pdf_filename TEXT,
             status TEXT DEFAULT 'pending',
             language TEXT DEFAULT 'en',
+            template_type TEXT DEFAULT 'general',
+            source_type TEXT DEFAULT 'generation',
+            source_name TEXT,
+            source_path TEXT,
+            analysis_json TEXT,
+            review_status TEXT DEFAULT 'pending',
+            review_note TEXT,
+            review_updated_at TEXT,
             created_at TEXT NOT NULL,
             completed_at TEXT,
             FOREIGN KEY (user_id) REFERENCES users(id)
         )
         """
+    )
+    existing_columns = {
+        row[1]
+        for row in conn.execute("PRAGMA table_info(generated_contracts)").fetchall()
+    }
+    schema_updates = {
+        "source_type": "TEXT DEFAULT 'generation'",
+        "template_type": "TEXT DEFAULT 'general'",
+        "source_name": "TEXT",
+        "source_path": "TEXT",
+        "analysis_json": "TEXT",
+        "review_status": "TEXT DEFAULT 'pending'",
+        "review_note": "TEXT",
+        "review_updated_at": "TEXT",
+    }
+    for column_name, column_definition in schema_updates.items():
+        if column_name not in existing_columns:
+            conn.execute(
+                f"ALTER TABLE generated_contracts ADD COLUMN {column_name} {column_definition}"
+            )
+
+    conn.execute(
+        "UPDATE generated_contracts SET source_type = 'generation' WHERE source_type IS NULL OR source_type = ''"
+    )
+    conn.execute(
+        "UPDATE generated_contracts SET review_status = 'pending' WHERE review_status IS NULL OR review_status = ''"
     )
     conn.commit()
     conn.close()
@@ -255,9 +353,38 @@ def process_analysis_job(job_id, file_path):
         job["status"] = "completed"
         job["result"] = result
         job["completed_at"] = datetime.utcnow().isoformat(timespec="seconds")
+
+        contract_id = job.get("contract_id")
+        if contract_id:
+            conn = get_db_connection()
+            conn.execute(
+                """
+                UPDATE generated_contracts
+                SET status = ?, content = ?, analysis_json = ?, completed_at = ?
+                WHERE id = ?
+                """,
+                (
+                    "finished",
+                    json.dumps(result, ensure_ascii=False, indent=2),
+                    json.dumps(result, ensure_ascii=False),
+                    job["completed_at"],
+                    contract_id,
+                ),
+            )
+            conn.commit()
+            conn.close()
     except Exception as e:
         job["status"] = "error"
         job["error"] = str(e)
+        contract_id = job.get("contract_id")
+        if contract_id:
+            conn = get_db_connection()
+            conn.execute(
+                "UPDATE generated_contracts SET status = ? WHERE id = ?",
+                ("error", contract_id),
+            )
+            conn.commit()
+            conn.close()
         job["completed_at"] = datetime.utcnow().isoformat(timespec="seconds")
 
 
@@ -281,7 +408,11 @@ def process_contract_job(contract_id):
         conn.commit()
         conn.close()
 
-        result = generate_contract(contract["prompt"], language=contract["language"])
+        result = generate_contract(
+            contract["prompt"],
+            language=contract["language"],
+            template_type=contract["template_type"] or "general",
+        )
 
         completed_at = datetime.utcnow().isoformat(timespec="seconds")
         pdf_filename = f"contract_{contract['user_id']}_{uuid.uuid4().hex}.pdf"
@@ -307,6 +438,111 @@ def process_contract_job(contract_id):
         )
         conn.commit()
         conn.close()
+
+
+def get_owned_contract(contract_id):
+    conn = get_db_connection()
+    contract = conn.execute(
+        "SELECT * FROM generated_contracts WHERE id = ? AND user_id = ?",
+        (contract_id, session["user_id"]),
+    ).fetchone()
+    conn.close()
+    return contract
+
+
+def get_user_contract_items(user_id):
+    conn = get_db_connection()
+    contracts = conn.execute(
+        """
+        SELECT id, title, status, review_status, review_note, source_type, created_at, completed_at, pdf_filename
+        FROM generated_contracts
+        WHERE user_id = ?
+        ORDER BY id DESC
+        """,
+        (user_id,),
+    ).fetchall()
+    conn.close()
+
+    items = []
+    for contract in contracts:
+        items.append(
+            {
+                "contract_id": contract["id"],
+                "id": contract["id"],
+                "title": contract["title"] or "Untitled Contract",
+                "status": contract["status"],
+                "review_status": contract["review_status"],
+                "review_note": contract["review_note"],
+                "source_type": contract["source_type"] or "generation",
+                "created_at": contract["created_at"],
+                "completed_at": contract["completed_at"],
+                "pdf_filename": contract["pdf_filename"],
+            }
+        )
+    return items
+
+
+def get_combined_job_metrics(user_id):
+    analysis_jobs = []
+    for job_id, job in jobs.items():
+        if job.get("user_id") != user_id:
+            continue
+
+        analysis_jobs.append(
+            {
+                "job_id": job_id,
+                "type": "analysis",
+                "status": job.get("status", "processing"),
+                "created_at": job.get("created_at"),
+                "completed_at": job.get("completed_at"),
+            }
+        )
+
+    contract_items = get_user_contract_items(user_id)
+
+    total_jobs = len(contract_items)
+    completed_jobs = sum(1 for job in contract_items if job.get("status") in {"completed", "finished"})
+    processing_jobs = sum(
+        1
+        for job in contract_items
+        if job.get("status") in {"processing", "in queue", "in job", "pending"}
+    )
+
+    analysis_jobs.sort(key=lambda item: item.get("created_at") or "", reverse=True)
+    contract_items.sort(key=lambda item: item.get("created_at") or "", reverse=True)
+
+    return {
+        "total_jobs": total_jobs,
+        "completed_jobs": completed_jobs,
+        "processing_jobs": processing_jobs,
+        "analysis_jobs": analysis_jobs,
+        "generation_jobs": contract_items,
+        "contract_items": contract_items,
+    }
+
+
+def review_status_label(review_status):
+    review_status = (review_status or "pending").lower()
+    if review_status == "accepted":
+        return tr("accepted")
+    if review_status == "rejected":
+        return tr("rejected")
+    if review_status == "pending":
+        return tr("pending_review")
+    return review_status.replace("_", " ").title()
+
+
+def status_label(status):
+    status = (status or "").lower()
+    if status in {"in queue", "pending"}:
+        return tr("in_queue")
+    if status == "in job":
+        return tr("in_job")
+    if status in {"finished", "completed"}:
+        return tr("finished")
+    if status == "error":
+        return "Error"
+    return status.title() if status else tr("processing")
 
 
 def job_worker():
@@ -599,63 +835,28 @@ def home():
 @app.route("/dashboard")
 @login_required
 def dashboard():
-    analysis_jobs = []
-    for job_id, job in jobs.items():
-        if job.get("user_id") != session["user_id"]:
-            continue
-
-        analysis_jobs.append(
-            {
-                "job_id": job_id,
-                "type": "analysis",
-                "status": job.get("status", "processing"),
-                "created_at": job.get("created_at"),
-                "completed_at": job.get("completed_at"),
-            }
-        )
-
-    analysis_jobs.sort(key=lambda item: item.get("created_at") or "", reverse=True)
-    
-    # Fetch generated contracts from database
-    conn = get_db_connection()
-    generated_contracts = conn.execute(
-        """
-        SELECT id, title, status, created_at, completed_at
-        FROM generated_contracts
-        WHERE user_id = ?
-        ORDER BY id DESC
-        """,
-        (session["user_id"],),
-    ).fetchall()
-    conn.close()
-    
-    generation_jobs = []
-    for contract in generated_contracts:
-        generation_jobs.append(
-            {
-                "contract_id": contract["id"],
-                "title": contract["title"] or "Untitled Contract",
-                "status": contract["status"],
-                "created_at": contract["created_at"],
-                "completed_at": contract["completed_at"],
-            }
-        )
-    generation_jobs.sort(key=lambda item: item.get("created_at") or "", reverse=True)
-
-    completed_jobs = sum(1 for job in analysis_jobs if job.get("status") == "completed")
-    processing_jobs = sum(
-        1
-        for job in analysis_jobs
-        if job.get("status") in {"processing", "in queue", "in job"}
-    )
+    metrics = get_combined_job_metrics(session["user_id"])
     
     return render_template(
         "dashboard.html",
-        total_jobs=len(analysis_jobs),
-        completed_jobs=completed_jobs,
-        processing_jobs=processing_jobs,
-        analysis_jobs=analysis_jobs,
-        generation_jobs=generation_jobs,
+        total_jobs=metrics["total_jobs"],
+        completed_jobs=metrics["completed_jobs"],
+        processing_jobs=metrics["processing_jobs"],
+        analysis_jobs=metrics["analysis_jobs"],
+        generation_jobs=metrics["generation_jobs"],
+    )
+
+
+@app.route("/monitoring")
+@login_required
+def monitoring():
+    metrics = get_combined_job_metrics(session["user_id"])
+    return render_template(
+        "monitoring.html",
+        contract_items=metrics["contract_items"],
+        total_jobs=metrics["total_jobs"],
+        completed_jobs=metrics["completed_jobs"],
+        processing_jobs=metrics["processing_jobs"],
     )
 
 
@@ -680,18 +881,49 @@ def analyze():
         file_path = os.path.join(app.config["UPLOAD_FOLDER"], unique_name)
         file.save(file_path)
 
+        created_at = datetime.utcnow().isoformat(timespec="seconds")
+        contract_title = os.path.splitext(safe_name)[0] or safe_name
+        conn = get_db_connection()
+        cursor = conn.execute(
+            """
+            INSERT INTO generated_contracts (
+                user_id, title, prompt, content, status, language,
+                source_type, source_name, source_path, review_status, created_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                session["user_id"],
+                contract_title,
+                f"Uploaded PDF: {safe_name}",
+                None,
+                "in queue",
+                get_language(),
+                "analysis",
+                safe_name,
+                file_path,
+                "pending",
+                created_at,
+            ),
+        )
+        conn.commit()
+        monitored_contract_id = cursor.lastrowid
+        conn.close()
+
         job_id = str(uuid.uuid4())
         jobs[job_id] = {
             "status": "in queue",
             "user_id": session["user_id"],
-            "created_at": datetime.utcnow().isoformat(timespec="seconds"),
+            "created_at": created_at,
             "completed_at": None,
+            "contract_id": monitored_contract_id,
         }
 
         # Add job to global queue (shared across all users and job types)
-        job_queue.put({"type": "analysis", "job_id": job_id, "file_path": file_path})
+        job_queue.put({"type": "analysis", "job_id": job_id, "file_path": file_path, "contract_id": monitored_contract_id})
 
-        return redirect(url_for("processing", job_id=job_id))
+        flash(tr("contract_queued"), "success")
+        return redirect(url_for("dashboard"))
 
     return render_template("analyze.html")
 
@@ -703,30 +935,50 @@ def generate():
         prompt = request.form.get("prompt", "").strip()
         title = request.form.get("title", "").strip()
         contract_lang = request.form.get("contract_lang", "en").strip()
+        template_type = request.form.get("template_type", "general").strip()
         if not prompt:
             flash(tr("prompt_required"), "error")
             return redirect(url_for("generate"))
 
+        if template_type not in {
+            "general",
+            "surat_perjanjian",
+            "kontrak_kerja",
+            "nda",
+            "service_agreement",
+            "software_license",
+        }:
+            template_type = "general"
+
         created_at = datetime.utcnow().isoformat(timespec="seconds")
-        
-        # Create database record with "pending" status
         conn = get_db_connection()
         cursor = conn.execute(
             """
-            INSERT INTO generated_contracts (user_id, title, prompt, status, language, created_at)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO generated_contracts (
+                user_id, title, prompt, status, language, template_type, source_type, review_status, created_at
+            )
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            (session["user_id"], title, prompt, "pending", contract_lang, created_at),
+            (
+                session["user_id"],
+                title,
+                prompt,
+                "pending",
+                contract_lang,
+                template_type,
+                "generation",
+                "pending",
+                created_at,
+            ),
         )
         conn.commit()
         generated_contract_id = cursor.lastrowid
         conn.close()
-        
-        # Update status to "in queue"
+
         conn = get_db_connection()
         conn.execute(
             "UPDATE generated_contracts SET status = ? WHERE id = ?",
-            ("in queue", generated_contract_id)
+            ("in queue", generated_contract_id),
         )
         conn.commit()
         conn.close()
@@ -734,13 +986,13 @@ def generate():
         # Add to global queue (shared across all users and job types)
         job_queue.put({"type": "generation", "contract_id": generated_contract_id})
         
-        flash(tr("contract_saved_pdf"), "success")
+        flash(tr("contract_queued"), "success")
         return redirect(url_for("generate"))
 
     conn = get_db_connection()
     recent_contracts = conn.execute(
         """
-        SELECT id, title, pdf_filename, status, created_at, completed_at
+        SELECT id, title, pdf_filename, status, review_status, source_type, created_at, completed_at
         FROM generated_contracts
         WHERE user_id = ?
         ORDER BY id DESC
@@ -759,19 +1011,13 @@ def generate():
 @app.route("/generated-contract/<int:contract_id>/download")
 @login_required
 def download_generated_contract(contract_id):
-    conn = get_db_connection()
-    contract = conn.execute(
-        """
-        SELECT id, user_id, pdf_filename
-        FROM generated_contracts
-        WHERE id = ?
-        """,
-        (contract_id,),
-    ).fetchone()
-    conn.close()
+    contract = get_owned_contract(contract_id)
 
     if not contract or contract["user_id"] != session["user_id"]:
         return redirect(url_for("generate"))
+
+    if not contract["pdf_filename"]:
+        return redirect(url_for("dashboard"))
 
     return send_from_directory(
         GENERATED_CONTRACTS_FOLDER,
@@ -804,6 +1050,111 @@ def status(job_id):
     return jsonify(job)
 
 
+@app.route("/contracts/<int:contract_id>/accept", methods=["POST"])
+@login_required
+def accept_contract(contract_id):
+    contract = get_owned_contract(contract_id)
+    if not contract:
+        return redirect(url_for("dashboard"))
+
+    conn = get_db_connection()
+    conn.execute(
+        """
+        UPDATE generated_contracts
+        SET review_status = ?, review_updated_at = ?
+        WHERE id = ?
+        """,
+        ("accepted", datetime.utcnow().isoformat(timespec="seconds"), contract_id),
+    )
+    conn.commit()
+    conn.close()
+    flash(tr("contract_accepted"), "success")
+    return redirect(request.referrer or url_for("dashboard"))
+
+
+@app.route("/contracts/<int:contract_id>/reject", methods=["POST"])
+@login_required
+def reject_contract(contract_id):
+    contract = get_owned_contract(contract_id)
+    if not contract:
+        return redirect(url_for("dashboard"))
+
+    conn = get_db_connection()
+    conn.execute(
+        """
+        UPDATE generated_contracts
+        SET review_status = ?, review_updated_at = ?
+        WHERE id = ?
+        """,
+        ("rejected", datetime.utcnow().isoformat(timespec="seconds"), contract_id),
+    )
+    conn.commit()
+    conn.close()
+    flash(tr("contract_rejected"), "success")
+    return redirect(request.referrer or url_for("dashboard"))
+
+
+@app.route("/contracts/<int:contract_id>/edit", methods=["GET", "POST"])
+@login_required
+def edit_contract(contract_id):
+    contract = get_owned_contract(contract_id)
+    if not contract:
+        return redirect(url_for("dashboard"))
+
+    if request.method == "POST":
+        title = request.form.get("title", "").strip()
+        review_status = request.form.get("review_status", "pending").strip()
+        review_note = request.form.get("review_note", "").strip()
+
+        if review_status not in {"pending", "accepted", "rejected"}:
+            review_status = "pending"
+
+        conn = get_db_connection()
+        conn.execute(
+            """
+            UPDATE generated_contracts
+            SET title = ?, review_status = ?, review_note = ?, review_updated_at = ?
+            WHERE id = ?
+            """,
+            (
+                title or contract["title"],
+                review_status,
+                review_note,
+                datetime.utcnow().isoformat(timespec="seconds"),
+                contract_id,
+            ),
+        )
+        conn.commit()
+        conn.close()
+        flash(tr("changes_saved"), "success")
+        return redirect(url_for("dashboard"))
+
+    return render_template("edit_contract.html", contract=contract)
+
+
+@app.route("/contracts/<int:contract_id>/delete", methods=["POST"])
+@login_required
+def delete_contract(contract_id):
+    contract = get_owned_contract(contract_id)
+    if not contract:
+        return redirect(url_for("dashboard"))
+
+    if contract["pdf_filename"]:
+        pdf_path = os.path.join(GENERATED_CONTRACTS_FOLDER, contract["pdf_filename"])
+        if os.path.exists(pdf_path):
+            os.remove(pdf_path)
+
+    if contract["source_path"] and os.path.exists(contract["source_path"]):
+        os.remove(contract["source_path"])
+
+    conn = get_db_connection()
+    conn.execute("DELETE FROM generated_contracts WHERE id = ?", (contract_id,))
+    conn.commit()
+    conn.close()
+    flash(tr("contract_deleted"), "success")
+    return redirect(request.referrer or url_for("dashboard"))
+
+
 # -------------------------------
 # Result page
 # -------------------------------
@@ -820,7 +1171,11 @@ def result(job_id):
         return redirect(url_for("home"))
 
     localized_result = localize_result(job, get_language())
-    return render_template("result.html", result=localized_result)
+    contract = None
+    contract_id = job.get("contract_id")
+    if contract_id:
+        contract = get_owned_contract(contract_id)
+    return render_template("result.html", result=localized_result, contract=contract)
 
 
 init_db()

@@ -204,6 +204,66 @@
             background: #a0a1ff;
         }
 
+        .status-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 14px;
+        }
+
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            border-radius: 999px;
+            padding: 7px 11px;
+            font-size: 12px;
+            font-weight: 700;
+            border: 1px solid transparent;
+        }
+
+        .status-pill.accepted {
+            background: #ecfdf5;
+            color: #065f46;
+            border-color: #a7f3d0;
+        }
+
+        .status-pill.rejected {
+            background: #fee2e2;
+            color: #7f1d1d;
+            border-color: #fecaca;
+        }
+
+        .status-pill.pending {
+            background: #f0f9ff;
+            color: #0c4a6e;
+            border-color: #bae6fd;
+        }
+
+        .action-form {
+            display: inline-block;
+        }
+
+        .tiny-button {
+            border: 0;
+            border-radius: 7px;
+            padding: 9px 12px;
+            font-size: 13px;
+            font-weight: 700;
+            color: #ffffff;
+            background: var(--accent);
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+        }
+
+        .tiny-button.secondary {
+            background: #6b7280;
+        }
+
+        .tiny-button.danger {
+            background: #b91c1c;
+        }
+
         @media (max-width: 900px) {
             .layout {
                 flex-direction: column;
@@ -233,6 +293,7 @@
                 <a href="/dashboard">{{ t("dashboard") }}</a>
                 <a class="active" href="/analyze">{{ t("analyze_contract") }}</a>
                 <a href="/generate">{{ t("generate_contract") }}</a>
+                <a href="/monitoring">{{ t("monitoring") }}</a>
                 <a href="/logout">{{ t("logout") }}</a>
             </nav>
             <a class="lang-toggle" href="{{ url_for('set_language', lang=toggle_lang, next=request.path) }}">{{ t("switch_language") }}</a>
@@ -269,6 +330,26 @@
                         <li><span class="label">{{ t("risk_level") }}</span> <span class="value">{{ result.risk_level }}</span></li>
                         <li><span class="label">{{ t("risk_analysis") }}</span> <span class="value">{{ result.risk_analysis }}</span></li>
                     </ul>
+
+                    {% if contract %}
+                        <div class="status-row">
+                            <span class="status-pill {{ contract.review_status or 'pending' }}">{{ t("review_status") }}: {% if contract.review_status == 'accepted' %}{{ t("accepted") }}{% elif contract.review_status == 'rejected' %}{{ t("rejected") }}{% else %}{{ t("pending_review") }}{% endif %}</span>
+                            <span class="status-pill pending">{{ t("source_type") }}: {{ t("analysis") if contract.source_type == "analysis" else t("generation") }}</span>
+                        </div>
+
+                        <div class="actions">
+                            <form class="action-form" method="POST" action="{{ url_for('accept_contract', contract_id=contract.id) }}">
+                                <button class="tiny-button" type="submit">{{ t("accept") }}</button>
+                            </form>
+                            <form class="action-form" method="POST" action="{{ url_for('reject_contract', contract_id=contract.id) }}">
+                                <button class="tiny-button secondary" type="submit">{{ t("reject") }}</button>
+                            </form>
+                            <a class="tiny-button secondary" href="{{ url_for('edit_contract', contract_id=contract.id) }}">{{ t("edit_acceptance") }}</a>
+                            <form class="action-form" method="POST" action="{{ url_for('delete_contract', contract_id=contract.id) }}" onsubmit="return confirm('Delete this contract?');">
+                                <button class="tiny-button danger" type="submit">{{ t("delete_contract") }}</button>
+                            </form>
+                        </div>
+                    {% endif %}
                 </div>
             </section>
 
