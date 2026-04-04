@@ -27,6 +27,7 @@
         .layout {
             display: flex;
             min-height: 100vh;
+            align-items: flex-start;
         }
 
         .sidebar {
@@ -37,6 +38,11 @@
             display: flex;
             flex-direction: column;
             gap: 12px;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+            flex-shrink: 0;
         }
 
         .brand {
@@ -79,6 +85,45 @@
             font-weight: 600;
         }
 
+        .logout-btn {
+            display: block;
+            text-decoration: none;
+            color: #ffffff;
+            padding: 10px 12px;
+            border-radius: 8px;
+            margin: 8px 10px;
+            background: rgba(200, 100, 100, 0.2);
+            border: 1px solid rgba(200, 100, 100, 0.5);
+            font-weight: 600;
+            font-size: 13px;
+            text-align: center;
+            transition: all 0.2s ease;
+        }
+
+        .logout-btn:hover {
+            background: rgba(200, 100, 100, 0.3);
+            border-color: rgba(200, 100, 100, 1);
+        }
+
+        .whatsapp-btn {
+            display: inline-block;
+            margin: 4px 10px 8px;
+            padding: 8px 10px;
+            border-radius: 8px;
+            text-decoration: none;
+            color: #ffffff;
+            border: 1px solid rgba(34, 177, 76, 0.5);
+            background: linear-gradient(135deg, rgba(34, 177, 76, 0.2), rgba(34, 177, 76, 0.1));
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .whatsapp-btn:hover {
+            background: linear-gradient(135deg, rgba(34, 177, 76, 0.3), rgba(34, 177, 76, 0.2));
+            border-color: rgba(34, 177, 76, 1);
+        }
+
         .muted {
             color: #a0a1ff;
             font-size: 13px;
@@ -89,6 +134,7 @@
         .main {
             flex: 1;
             padding: 28px;
+            min-height: 100vh;
         }
 
         h1 {
@@ -271,6 +317,9 @@
 
             .sidebar {
                 width: 100%;
+                position: static;
+                height: auto;
+                overflow-y: visible;
             }
 
             .grid {
@@ -294,10 +343,11 @@
                 <a class="active" href="/analyze">{{ t("analyze_contract") }}</a>
                 <a href="/generate">{{ t("generate_contract") }}</a>
                 <a href="/monitoring">{{ t("monitoring") }}</a>
-                <a href="/logout">{{ t("logout") }}</a>
             </nav>
+            <a class="whatsapp-btn" href="https://wa.me/6283185381334?text=I%20need%20legal%20assistance" target="_blank" rel="noopener noreferrer">📱 {{ t("legal_assistance") }}</a>
             <a class="lang-toggle" href="{{ url_for('set_language', lang=toggle_lang, next=request.path) }}">{{ t("switch_language") }}</a>
             <div class="muted">{{ t("signed_in_as") }} {{ session.get("username") }}</div>
+            <a class="logout-btn" href="/logout">{{ t("logout") }}</a>
         </aside>
 
         <main class="main">

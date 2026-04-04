@@ -28,6 +28,7 @@
         .layout {
             display: flex;
             min-height: 100vh;
+            align-items: flex-start;
         }
 
         .sidebar {
@@ -38,6 +39,11 @@
             display: flex;
             flex-direction: column;
             gap: 12px;
+            position: sticky;
+            top: 0;
+            height: 100vh;
+            overflow-y: auto;
+            flex-shrink: 0;
         }
 
         .brand {
@@ -80,6 +86,45 @@
             font-weight: 600;
         }
 
+        .logout-btn {
+            display: block;
+            text-decoration: none;
+            color: #ffffff;
+            padding: 10px 12px;
+            border-radius: 8px;
+            margin: 8px 10px;
+            background: rgba(200, 100, 100, 0.2);
+            border: 1px solid rgba(200, 100, 100, 0.5);
+            font-weight: 600;
+            font-size: 13px;
+            text-align: center;
+            transition: all 0.2s ease;
+        }
+
+        .logout-btn:hover {
+            background: rgba(200, 100, 100, 0.3);
+            border-color: rgba(200, 100, 100, 1);
+        }
+
+        .whatsapp-btn {
+            display: inline-block;
+            margin: 4px 10px 8px;
+            padding: 8px 10px;
+            border-radius: 8px;
+            text-decoration: none;
+            color: #ffffff;
+            border: 1px solid rgba(34, 177, 76, 0.5);
+            background: linear-gradient(135deg, rgba(34, 177, 76, 0.2), rgba(34, 177, 76, 0.1));
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .whatsapp-btn:hover {
+            background: linear-gradient(135deg, rgba(34, 177, 76, 0.3), rgba(34, 177, 76, 0.2));
+            border-color: rgba(34, 177, 76, 1);
+        }
+
         .muted {
             color: var(--sidebar-muted);
             font-size: 13px;
@@ -90,6 +135,7 @@
         .main {
             flex: 1;
             padding: 28px;
+            min-height: 100vh;
         }
 
         .header {
@@ -262,6 +308,52 @@
             color: #6b7280;
         }
 
+        .table-tools {
+            padding: 10px 16px;
+            border-bottom: 1px solid var(--border);
+            background: #f8fafc;
+        }
+
+        .table-search {
+            width: 100%;
+            max-width: 320px;
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 8px 10px;
+            font-family: inherit;
+        }
+
+        .table-pagination {
+            padding: 10px 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            border-top: 1px solid #e5e7eb;
+            background: #f8fafc;
+        }
+
+        .page-btn {
+            border: 1px solid var(--border);
+            background: #ffffff;
+            border-radius: 6px;
+            padding: 6px 10px;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text);
+        }
+
+        .page-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .page-info {
+            font-size: 12px;
+            color: #4b5563;
+            margin-left: 4px;
+        }
+
         @media (max-width: 900px) {
             .layout {
                 flex-direction: column;
@@ -269,6 +361,9 @@
 
             .sidebar {
                 width: 100%;
+                position: static;
+                height: auto;
+                overflow-y: visible;
             }
 
             th,
@@ -287,10 +382,11 @@
                 <a href="/analyze">{{ t("analyze_contract") }}</a>
                 <a href="/generate">{{ t("generate_contract") }}</a>
                 <a class="active" href="/monitoring">{{ t("monitoring") }}</a>
-                <a href="/logout">{{ t("logout") }}</a>
             </nav>
+            <a class="whatsapp-btn" href="https://wa.me/6283185381334?text=I%20need%20legal%20assistance" target="_blank" rel="noopener noreferrer">📱 {{ t("legal_assistance") }}</a>
             <a class="lang-toggle" href="{{ url_for('set_language', lang=toggle_lang, next=request.path) }}">{{ t("switch_language") }}</a>
             <div class="muted">{{ t("signed_in_as") }} {{ session.get("username") }}</div>
+            <a class="logout-btn" href="/logout">{{ t("logout") }}</a>
         </aside>
 
         <main class="main">
@@ -323,14 +419,18 @@
                 {% endif %}
             {% endwith %}
 
+            {# Analyzed Contracts Section #}
             <section class="panel">
-                <div class="panel-head">{{ t("contract_monitoring") }}</div>
-                {% if contract_items %}
-                    <table>
+                <div class="panel-head">{{ t("analysis") }} - {{ t("contract_monitoring") }}</div>
+                {% set analyzed_items = contract_items|selectattr('source_type', 'equalto', 'analysis')|rejectattr('status', 'equalto', 'error')|list %}
+                {% if analyzed_items %}
+                    <div class="table-tools">
+                        <input class="table-search" data-target="monitoring-analysis-table" placeholder="Search analyzed contracts..." type="text">
+                    </div>
+                    <table id="monitoring-analysis-table" class="paginated-table" data-page-size="8">
                         <thead>
                             <tr>
                                 <th>{{ t("contract_title") }}</th>
-                                <th>{{ t("source_type") }}</th>
                                 <th>{{ t("status") }}</th>
                                 <th>{{ t("review_status") }}</th>
                                 <th>{{ t("created_at") }}</th>
@@ -338,10 +438,87 @@
                             </tr>
                         </thead>
                         <tbody>
-                            {% for item in contract_items %}
+                            {% for item in analyzed_items %}
                                 <tr>
-                                    <td>{{ item.title }}</td>
-                                    <td>{{ t("analysis") if item.source_type == "analysis" else t("generation") }}</td>
+                                    <td>{{ item.title or item.source_name or "Analyzed Contract" }}</td>
+                                    <td>
+                                        <span class="status {{ item.status|replace(' ', '-') }}">
+                                            {% if item.status == "in queue" %}
+                                                {{ t("in_queue") }}
+                                            {% elif item.status == "in job" %}
+                                                {{ t("in_job") }}
+                                            {% elif item.status == "finished" %}
+                                                {{ t("finished") }}
+                                            {% elif item.status == "error" %}
+                                                {{ item.status }}
+                                            {% else %}
+                                                {{ item.status }}
+                                            {% endif %}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="status {{ item.review_status|replace(' ', '-') }}">
+                                            {% if item.review_status == "accepted" %}
+                                                {{ t("accepted") }}
+                                            {% elif item.review_status == "rejected" %}
+                                                {{ t("rejected") }}
+                                            {% else %}
+                                                {{ t("pending_review") }}
+                                            {% endif %}
+                                        </span>
+                                    </td>
+                                    <td>{{ item.created_at or "-" }}</td>
+                                    <td>
+                                        <div class="action-row">
+                                            {% if item.status == "finished" %}
+                                                <a class="tiny-button" href="{{ url_for('view_analysis_result', contract_id=item.id) }}">{{ t("view_result") }}</a>
+                                                <form method="POST" action="{{ url_for('accept_contract', contract_id=item.id) }}">
+                                                    <button class="tiny-button" type="submit">{{ t("accept") }}</button>
+                                                </form>
+                                                <form method="POST" action="{{ url_for('reject_contract', contract_id=item.id) }}">
+                                                    <button class="tiny-button secondary" type="submit">{{ t("reject") }}</button>
+                                                </form>
+                                                <a class="tiny-button secondary" href="{{ url_for('edit_contract', contract_id=item.id) }}">{{ t("edit_acceptance") }}</a>
+                                                <form method="POST" action="{{ url_for('delete_contract', contract_id=item.id) }}" onsubmit="return confirm('Delete this contract?');">
+                                                    <button class="tiny-button danger" type="submit">{{ t("delete_contract") }}</button>
+                                                </form>
+                                            {% else %}
+                                                <span class="status-text">{{ t("processing") }}</span>
+                                            {% endif %}
+                                        </div>
+                                    </td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    <div class="table-pagination" data-target="monitoring-analysis-table"></div>
+                {% else %}
+                    <div class="empty-state">{{ t("no_contracts") }}</div>
+                {% endif %}
+            </section>
+
+            {# Generated Contracts Section #}
+            <section class="panel" style="margin-top: 1rem;">
+                <div class="panel-head">{{ t("generation") }} - {{ t("contract_monitoring") }}</div>
+                {% set generated_items = contract_items|selectattr('source_type', 'equalto', 'generation')|rejectattr('status', 'equalto', 'error')|list %}
+                {% if generated_items %}
+                    <div class="table-tools">
+                        <input class="table-search" data-target="monitoring-generation-table" placeholder="Search generated contracts..." type="text">
+                    </div>
+                    <table id="monitoring-generation-table" class="paginated-table" data-page-size="8">
+                        <thead>
+                            <tr>
+                                <th>{{ t("contract_title") }}</th>
+                                <th>{{ t("status") }}</th>
+                                <th>{{ t("review_status") }}</th>
+                                <th>{{ t("created_at") }}</th>
+                                <th>{{ t("action") }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in generated_items %}
+                                <tr>
+                                    <td>{{ item.title or "Generated Contract" }}</td>
                                     <td>
                                         <span class="status {{ item.status|replace(' ', '-') }}">
                                             {% if item.status == "in queue" %}
@@ -394,11 +571,155 @@
                             {% endfor %}
                         </tbody>
                     </table>
+                    <div class="table-pagination" data-target="monitoring-generation-table"></div>
                 {% else %}
                     <div class="empty-state">{{ t("no_contracts") }}</div>
                 {% endif %}
             </section>
+
+            {# Analyzed Error Contracts Section #}
+            <section class="panel" style="margin-top: 1rem;">
+                <div class="panel-head">{{ t("analysis") }} Error Contracts</div>
+                {% set analyzed_error_items = contract_items|selectattr('source_type', 'equalto', 'analysis')|selectattr('status', 'equalto', 'error')|list %}
+                {% if analyzed_error_items %}
+                    <div class="table-tools">
+                        <input class="table-search" data-target="monitoring-analysis-error-table" placeholder="Search analysis errors..." type="text">
+                    </div>
+                    <table id="monitoring-analysis-error-table" class="paginated-table" data-page-size="8">
+                        <thead>
+                            <tr>
+                                <th>{{ t("contract_title") }}</th>
+                                <th>{{ t("status") }}</th>
+                                <th>{{ t("created_at") }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in analyzed_error_items %}
+                                <tr>
+                                    <td>{{ item.title or item.source_name or "Analyzed Contract" }}</td>
+                                    <td><span class="status error">error</span></td>
+                                    <td>{{ item.created_at or "-" }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    <div class="table-pagination" data-target="monitoring-analysis-error-table"></div>
+                {% else %}
+                    <div class="empty-state">No analysis errors.</div>
+                {% endif %}
+            </section>
+
+            {# Generated Error Contracts Section #}
+            <section class="panel" style="margin-top: 1rem;">
+                <div class="panel-head">{{ t("generation") }} Error Contracts</div>
+                {% set generated_error_items = contract_items|selectattr('source_type', 'equalto', 'generation')|selectattr('status', 'equalto', 'error')|list %}
+                {% if generated_error_items %}
+                    <div class="table-tools">
+                        <input class="table-search" data-target="monitoring-generation-error-table" placeholder="Search generation errors..." type="text">
+                    </div>
+                    <table id="monitoring-generation-error-table" class="paginated-table" data-page-size="8">
+                        <thead>
+                            <tr>
+                                <th>{{ t("contract_title") }}</th>
+                                <th>{{ t("status") }}</th>
+                                <th>{{ t("created_at") }}</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in generated_error_items %}
+                                <tr>
+                                    <td>{{ item.title or "Generated Contract" }}</td>
+                                    <td><span class="status error">error</span></td>
+                                    <td>{{ item.created_at or "-" }}</td>
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    <div class="table-pagination" data-target="monitoring-generation-error-table"></div>
+                {% else %}
+                    <div class="empty-state">No generation errors.</div>
+                {% endif %}
+            </section>
         </main>
     </div>
+    <script>
+        (function () {
+            function initTable(table) {
+                const tableId = table.id;
+                const tbody = table.tBodies[0];
+                if (!tbody) return;
+
+                const rows = Array.from(tbody.rows);
+                const pageSize = Number(table.dataset.pageSize || 8);
+                const searchInput = document.querySelector('.table-search[data-target="' + tableId + '"]');
+                const paginationEl = document.querySelector('.table-pagination[data-target="' + tableId + '"]');
+
+                let filteredRows = rows.slice();
+                let currentPage = 1;
+
+                function render() {
+                    const totalRows = filteredRows.length;
+                    const totalPages = Math.max(1, Math.ceil(totalRows / pageSize));
+                    currentPage = Math.min(currentPage, totalPages);
+
+                    const start = (currentPage - 1) * pageSize;
+                    const end = start + pageSize;
+
+                    rows.forEach(function (row) { row.style.display = 'none'; });
+                    filteredRows.slice(start, end).forEach(function (row) { row.style.display = ''; });
+
+                    if (!paginationEl) return;
+                    paginationEl.innerHTML = '';
+
+                    const prevBtn = document.createElement('button');
+                    prevBtn.type = 'button';
+                    prevBtn.className = 'page-btn';
+                    prevBtn.textContent = 'Prev';
+                    prevBtn.disabled = currentPage <= 1;
+                    prevBtn.addEventListener('click', function () {
+                        if (currentPage > 1) {
+                            currentPage -= 1;
+                            render();
+                        }
+                    });
+
+                    const nextBtn = document.createElement('button');
+                    nextBtn.type = 'button';
+                    nextBtn.className = 'page-btn';
+                    nextBtn.textContent = 'Next';
+                    nextBtn.disabled = currentPage >= totalPages;
+                    nextBtn.addEventListener('click', function () {
+                        if (currentPage < totalPages) {
+                            currentPage += 1;
+                            render();
+                        }
+                    });
+
+                    const info = document.createElement('span');
+                    info.className = 'page-info';
+                    info.textContent = 'Page ' + currentPage + ' of ' + totalPages + ' (' + totalRows + ' rows)';
+
+                    paginationEl.appendChild(prevBtn);
+                    paginationEl.appendChild(nextBtn);
+                    paginationEl.appendChild(info);
+                }
+
+                if (searchInput) {
+                    searchInput.addEventListener('input', function (event) {
+                        const query = String(event.target.value || '').trim().toLowerCase();
+                        filteredRows = rows.filter(function (row) {
+                            return row.textContent.toLowerCase().includes(query);
+                        });
+                        currentPage = 1;
+                        render();
+                    });
+                }
+
+                render();
+            }
+
+            document.querySelectorAll('.paginated-table').forEach(initTable);
+        })();
+    </script>
 </body>
 </html>

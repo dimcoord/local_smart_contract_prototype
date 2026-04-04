@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, redirect, url_for, jsonify, flash, session, send_from_directory
 import os
 import uuid
+import logging
 import threading
 import queue
 import sqlite3
@@ -15,6 +16,8 @@ from fpdf import FPDF  # type: ignore[import-not-found]
 from utils import extract_text_from_pdf
 from analyzer import analyze_contract, MODEL
 from generator import generate_contract
+
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 app.config["SECRET_KEY"] = os.getenv("FLASK_SECRET_KEY", "dev-secret-key-change-this")
@@ -136,7 +139,7 @@ TRANSLATIONS = {
         "rejected": "Rejected",
         "accept": "Accept",
         "reject": "Reject",
-        "edit_acceptance": "Edit Acceptance",
+        "edit_acceptance": "Edit",
         "delete_contract": "Delete Contract",
         "save_changes": "Save Changes",
         "contract_accepted": "Contract accepted.",
@@ -145,13 +148,14 @@ TRANSLATIONS = {
         "contract_deleted": "Contract deleted.",
         "review_note": "Review Note",
         "contract_title_edit": "Contract Title",
-        "acceptance_editor": "Acceptance Editor",
+        "acceptance_editor": "Editor",
         "source_type": "Source Type",
         "analysis": "Analysis",
         "generation": "Generation",
         "contract_queued": "Contract queued for monitoring.",
         "monitoring": "Monitoring",
         "no_generated_contracts_dashboard": "No generated contracts yet.",
+        "legal_assistance": "Legal Assistance",
     },
     "id": {
         "app_name": "LexivaAI",
@@ -248,7 +252,7 @@ TRANSLATIONS = {
         "rejected": "Ditolak",
         "accept": "Setujui",
         "reject": "Tolak",
-        "edit_acceptance": "Edit Persetujuan",
+        "edit_acceptance": "Edit",
         "delete_contract": "Hapus Kontrak",
         "save_changes": "Simpan Perubahan",
         "contract_accepted": "Kontrak diterima.",
@@ -257,13 +261,14 @@ TRANSLATIONS = {
         "contract_deleted": "Kontrak dihapus.",
         "review_note": "Catatan Review",
         "contract_title_edit": "Judul Kontrak",
-        "acceptance_editor": "Editor Persetujuan",
+        "acceptance_editor": "Editor",
         "source_type": "Sumber",
         "analysis": "Analisis",
         "generation": "Generate",
         "contract_queued": "Kontrak masuk antrean monitoring.",
         "monitoring": "Monitoring",
         "no_generated_contracts_dashboard": "Belum ada kontrak yang dibuat.",
+        "legal_assistance": "Bantuan Hukum",
     },
 }
 
@@ -340,7 +345,7 @@ def init_db():
     conn.close()
 
 
-def process_analysis_job(job_id, file_path):
+def process_analysis_job(job_id, file_path, contract_id=None):
     job = jobs.get(job_id)
     if not job:
         return
@@ -348,13 +353,30 @@ def process_analysis_job(job_id, file_path):
     try:
         job["status"] = "in job"
         text = extract_text_from_pdf(file_path)
-        result = analyze_contract(text)
+        
+        # Get the language from the database
+        language = "en"
+        if contract_id:
+            conn = get_db_connection()
+            contract = conn.execute(
+                "SELECT language FROM generated_contracts WHERE id = ?",
+                (contract_id,)
+            ).fetchone()
+            conn.close()
+            if contract:
+                language = contract["language"] or "en"
+                logger.info(f"Analysis job {job_id}: Using language '{language}' from contract {contract_id}")
+            else:
+                logger.warning(f"Analysis job {job_id}: Contract {contract_id} not found in database")
+        else:
+            logger.warning(f"Analysis job {job_id}: No contract_id provided, defaulting to 'en'")
+        
+        result = analyze_contract(text, language=language)
 
         job["status"] = "completed"
         job["result"] = result
         job["completed_at"] = datetime.utcnow().isoformat(timespec="seconds")
 
-        contract_id = job.get("contract_id")
         if contract_id:
             conn = get_db_connection()
             conn.execute(
@@ -376,7 +398,6 @@ def process_analysis_job(job_id, file_path):
     except Exception as e:
         job["status"] = "error"
         job["error"] = str(e)
-        contract_id = job.get("contract_id")
         if contract_id:
             conn = get_db_connection()
             conn.execute(
@@ -386,12 +407,13 @@ def process_analysis_job(job_id, file_path):
             conn.commit()
             conn.close()
         job["completed_at"] = datetime.utcnow().isoformat(timespec="seconds")
+        logger.exception("Failed to analyze contract %s", contract_id)
 
 
 def process_contract_job(contract_id):
     conn = get_db_connection()
     contract = conn.execute(
-        "SELECT id, user_id, title, prompt, language FROM generated_contracts WHERE id = ?",
+        "SELECT id, user_id, title, prompt, language, template_type FROM generated_contracts WHERE id = ?",
         (contract_id,),
     ).fetchone()
     conn.close()
@@ -430,7 +452,8 @@ def process_contract_job(contract_id):
         )
         conn.commit()
         conn.close()
-    except Exception:
+    except Exception as exc:
+        logger.exception("Failed to generate contract %s", contract_id)
         conn = get_db_connection()
         conn.execute(
             "UPDATE generated_contracts SET status = ? WHERE id = ?",
@@ -499,6 +522,9 @@ def get_combined_job_metrics(user_id):
         )
 
     contract_items = get_user_contract_items(user_id)
+    
+    # Separate generation jobs from all contracts
+    generation_jobs = [item for item in contract_items if item.get("source_type") == "generation"]
 
     total_jobs = len(contract_items)
     completed_jobs = sum(1 for job in contract_items if job.get("status") in {"completed", "finished"})
@@ -509,14 +535,14 @@ def get_combined_job_metrics(user_id):
     )
 
     analysis_jobs.sort(key=lambda item: item.get("created_at") or "", reverse=True)
-    contract_items.sort(key=lambda item: item.get("created_at") or "", reverse=True)
+    generation_jobs.sort(key=lambda item: item.get("created_at") or "", reverse=True)
 
     return {
         "total_jobs": total_jobs,
         "completed_jobs": completed_jobs,
         "processing_jobs": processing_jobs,
         "analysis_jobs": analysis_jobs,
-        "generation_jobs": contract_items,
+        "generation_jobs": generation_jobs,
         "contract_items": contract_items,
     }
 
@@ -555,7 +581,7 @@ def job_worker():
 
             task_type = task.get("type")
             if task_type == "analysis":
-                process_analysis_job(task["job_id"], task["file_path"])
+                process_analysis_job(task["job_id"], task["file_path"], contract_id=task.get("contract_id"))
             elif task_type == "generation":
                 process_contract_job(task["contract_id"])
         finally:
@@ -1175,6 +1201,24 @@ def result(job_id):
     contract_id = job.get("contract_id")
     if contract_id:
         contract = get_owned_contract(contract_id)
+    return render_template("result.html", result=localized_result, contract=contract)
+
+
+@app.route("/contract/<int:contract_id>/result")
+@login_required
+def view_analysis_result(contract_id):
+    contract = get_owned_contract(contract_id)
+    
+    if not contract or contract["source_type"] != "analysis":
+        return redirect(url_for("monitoring"))
+    
+    # Parse the analysis_json from the database
+    try:
+        result = json.loads(contract["analysis_json"]) if contract["analysis_json"] else {}
+    except (json.JSONDecodeError, TypeError):
+        result = {}
+    
+    localized_result = result
     return render_template("result.html", result=localized_result, contract=contract)
 
 
