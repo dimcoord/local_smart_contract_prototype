@@ -396,16 +396,28 @@
 
             <section class="cards">
                 <div class="card">
-                    <h3>{{ t("total_jobs") }}</h3>
-                    <p>{{ total_jobs }}</p>
+                    <h3>{{ t("total_non_error_contracts") }}</h3>
+                    <p>{{ non_error_contracts_count }}</p>
                 </div>
                 <div class="card">
-                    <h3>{{ t("completed_jobs") }}</h3>
-                    <p>{{ completed_jobs }}</p>
+                    <h3>{{ t("active_contracts") }}</h3>
+                    <p>{{ active_contracts_count }}</p>
                 </div>
                 <div class="card">
-                    <h3>{{ t("processing_jobs") }}</h3>
-                    <p>{{ processing_jobs }}</p>
+                    <h3>{{ t("rejected_contracts") }}</h3>
+                    <p>{{ rejected_contracts_count }}</p>
+                </div>
+                <div class="card">
+                    <h3>{{ t("pending_contracts") }}</h3>
+                    <p>{{ pending_contracts_count }}</p>
+                </div>
+                <div class="card">
+                    <h3>{{ t("expired_contracts") }}</h3>
+                    <p>{{ expired_contracts_count }}</p>
+                </div>
+                <div class="card">
+                    <h3>{{ t("total_accepted_contract_value") }}</h3>
+                    <p>{{ accepted_value_total_display }}</p>
                 </div>
             </section>
 
@@ -425,7 +437,7 @@
                 {% set analyzed_items = contract_items|selectattr('source_type', 'equalto', 'analysis')|rejectattr('status', 'equalto', 'error')|list %}
                 {% if analyzed_items %}
                     <div class="table-tools">
-                        <input class="table-search" data-target="monitoring-analysis-table" placeholder="Search analyzed contracts..." type="text">
+                        <input class="table-search" data-target="monitoring-analysis-table" placeholder="{{ t('search_analyzed_contracts') }}" type="text">
                     </div>
                     <table id="monitoring-analysis-table" class="paginated-table" data-page-size="8">
                         <thead>
@@ -433,7 +445,7 @@
                                 <th>{{ t("contract_title") }}</th>
                                 <th>{{ t("status") }}</th>
                                 <th>{{ t("review_status") }}</th>
-                                <th>{{ t("created_at") }}</th>
+                                <th>{{ t("time_left") }}</th>
                                 <th>{{ t("action") }}</th>
                             </tr>
                         </thead>
@@ -467,7 +479,7 @@
                                             {% endif %}
                                         </span>
                                     </td>
-                                    <td>{{ item.created_at or "-" }}</td>
+                                    <td>{{ item.time_left_display or "-" }}</td>
                                     <td>
                                         <div class="action-row">
                                             {% if item.status == "finished" %}
@@ -503,7 +515,7 @@
                 {% set generated_items = contract_items|selectattr('source_type', 'equalto', 'generation')|rejectattr('status', 'equalto', 'error')|list %}
                 {% if generated_items %}
                     <div class="table-tools">
-                        <input class="table-search" data-target="monitoring-generation-table" placeholder="Search generated contracts..." type="text">
+                        <input class="table-search" data-target="monitoring-generation-table" placeholder="{{ t('search_generated_contracts') }}" type="text">
                     </div>
                     <table id="monitoring-generation-table" class="paginated-table" data-page-size="8">
                         <thead>
@@ -579,18 +591,18 @@
 
             {# Analyzed Error Contracts Section #}
             <section class="panel" style="margin-top: 1rem;">
-                <div class="panel-head">{{ t("analysis") }} Error Contracts</div>
+                <div class="panel-head">{{ t("analysis") }} {{ t("error_contracts") }}</div>
                 {% set analyzed_error_items = contract_items|selectattr('source_type', 'equalto', 'analysis')|selectattr('status', 'equalto', 'error')|list %}
                 {% if analyzed_error_items %}
                     <div class="table-tools">
-                        <input class="table-search" data-target="monitoring-analysis-error-table" placeholder="Search analysis errors..." type="text">
+                        <input class="table-search" data-target="monitoring-analysis-error-table" placeholder="{{ t('search_analysis_errors') }}" type="text">
                     </div>
                     <table id="monitoring-analysis-error-table" class="paginated-table" data-page-size="8">
                         <thead>
                             <tr>
                                 <th>{{ t("contract_title") }}</th>
                                 <th>{{ t("status") }}</th>
-                                <th>{{ t("created_at") }}</th>
+                                <th>{{ t("time_left") }}</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -598,24 +610,24 @@
                                 <tr>
                                     <td>{{ item.title or item.source_name or "Analyzed Contract" }}</td>
                                     <td><span class="status error">error</span></td>
-                                    <td>{{ item.created_at or "-" }}</td>
+                                    <td>{{ item.time_left_display or "-" }}</td>
                                 </tr>
                             {% endfor %}
                         </tbody>
                     </table>
                     <div class="table-pagination" data-target="monitoring-analysis-error-table"></div>
                 {% else %}
-                    <div class="empty-state">No analysis errors.</div>
+                    <div class="empty-state">{{ t("no_analysis_errors") }}</div>
                 {% endif %}
             </section>
 
             {# Generated Error Contracts Section #}
             <section class="panel" style="margin-top: 1rem;">
-                <div class="panel-head">{{ t("generation") }} Error Contracts</div>
+                <div class="panel-head">{{ t("generation") }} {{ t("error_contracts") }}</div>
                 {% set generated_error_items = contract_items|selectattr('source_type', 'equalto', 'generation')|selectattr('status', 'equalto', 'error')|list %}
                 {% if generated_error_items %}
                     <div class="table-tools">
-                        <input class="table-search" data-target="monitoring-generation-error-table" placeholder="Search generation errors..." type="text">
+                        <input class="table-search" data-target="monitoring-generation-error-table" placeholder="{{ t('search_generation_errors') }}" type="text">
                     </div>
                     <table id="monitoring-generation-error-table" class="paginated-table" data-page-size="8">
                         <thead>
@@ -637,13 +649,17 @@
                     </table>
                     <div class="table-pagination" data-target="monitoring-generation-error-table"></div>
                 {% else %}
-                    <div class="empty-state">No generation errors.</div>
+                    <div class="empty-state">{{ t("no_generation_errors") }}</div>
                 {% endif %}
             </section>
         </main>
     </div>
     <script>
         (function () {
+            const paginationPrevLabel = '{{ t("pagination_prev") }}';
+            const paginationNextLabel = '{{ t("pagination_next") }}';
+            const paginationInfoTemplate = '{{ t("pagination_info") }}';
+
             function initTable(table) {
                 const tableId = table.id;
                 const tbody = table.tBodies[0];
@@ -674,7 +690,7 @@
                     const prevBtn = document.createElement('button');
                     prevBtn.type = 'button';
                     prevBtn.className = 'page-btn';
-                    prevBtn.textContent = 'Prev';
+                    prevBtn.textContent = paginationPrevLabel;
                     prevBtn.disabled = currentPage <= 1;
                     prevBtn.addEventListener('click', function () {
                         if (currentPage > 1) {
@@ -686,7 +702,7 @@
                     const nextBtn = document.createElement('button');
                     nextBtn.type = 'button';
                     nextBtn.className = 'page-btn';
-                    nextBtn.textContent = 'Next';
+                    nextBtn.textContent = paginationNextLabel;
                     nextBtn.disabled = currentPage >= totalPages;
                     nextBtn.addEventListener('click', function () {
                         if (currentPage < totalPages) {
@@ -697,7 +713,10 @@
 
                     const info = document.createElement('span');
                     info.className = 'page-info';
-                    info.textContent = 'Page ' + currentPage + ' of ' + totalPages + ' (' + totalRows + ' rows)';
+                    info.textContent = paginationInfoTemplate
+                        .replace('{page}', String(currentPage))
+                        .replace('{total_pages}', String(totalPages))
+                        .replace('{total_rows}', String(totalRows));
 
                     paginationEl.appendChild(prevBtn);
                     paginationEl.appendChild(nextBtn);

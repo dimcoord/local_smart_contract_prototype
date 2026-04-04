@@ -6,7 +6,8 @@ import threading
 import queue
 import sqlite3
 import json
-from datetime import datetime
+import re
+from datetime import datetime, timedelta
 from functools import wraps
 from werkzeug.security import generate_password_hash, check_password_hash
 from werkzeug.utils import secure_filename
@@ -156,6 +157,31 @@ TRANSLATIONS = {
         "monitoring": "Monitoring",
         "no_generated_contracts_dashboard": "No generated contracts yet.",
         "legal_assistance": "Legal Assistance",
+        "total_accepted_contract_value": "Total Accepted Contract Value",
+        "total_non_error_contracts": "Total Non-Error Contracts",
+        "active_contracts": "Active Contracts",
+        "rejected_contracts": "Rejected Contracts",
+        "pending_contracts": "Pending Contracts",
+        "expired_contracts": "Expired Contracts",
+        "error_contracts": "Error Contracts",
+        "no_analysis_errors": "No analysis errors.",
+        "no_generation_errors": "No generation errors.",
+        "contract_value": "Contract Value",
+        "start_date": "Start Date",
+        "end_date": "End Date",
+        "duration_days": "Duration (Days)",
+        "time_left": "Time Left",
+        "expired": "Expired",
+        "expires_today": "Expires today",
+        "days_left": "{days} day(s) left",
+        "search_analysis_jobs": "Search analysis jobs...",
+        "search_analyzed_contracts": "Search analyzed contracts...",
+        "search_generated_contracts": "Search generated contracts...",
+        "search_analysis_errors": "Search analysis errors...",
+        "search_generation_errors": "Search generation errors...",
+        "pagination_prev": "Prev",
+        "pagination_next": "Next",
+        "pagination_info": "Page {page} of {total_pages} ({total_rows} rows)",
     },
     "id": {
         "app_name": "LexivaAI",
@@ -269,6 +295,31 @@ TRANSLATIONS = {
         "monitoring": "Monitoring",
         "no_generated_contracts_dashboard": "Belum ada kontrak yang dibuat.",
         "legal_assistance": "Bantuan Hukum",
+        "total_accepted_contract_value": "Total Nilai Kontrak Disetujui",
+        "total_non_error_contracts": "Total Kontrak Non-Error",
+        "active_contracts": "Kontrak Aktif",
+        "rejected_contracts": "Kontrak Ditolak",
+        "pending_contracts": "Kontrak Menunggu Review",
+        "expired_contracts": "Kontrak Kedaluwarsa",
+        "error_contracts": "Kontrak Error",
+        "no_analysis_errors": "Tidak ada error analisis.",
+        "no_generation_errors": "Tidak ada error generate.",
+        "contract_value": "Nilai Kontrak",
+        "start_date": "Tanggal Mulai",
+        "end_date": "Tanggal Berakhir",
+        "duration_days": "Durasi (Hari)",
+        "time_left": "Sisa Waktu",
+        "expired": "Kedaluwarsa",
+        "expires_today": "Berakhir hari ini",
+        "days_left": "{days} hari tersisa",
+        "search_analysis_jobs": "Cari pekerjaan analisis...",
+        "search_analyzed_contracts": "Cari kontrak yang dianalisis...",
+        "search_generated_contracts": "Cari kontrak yang dibuat...",
+        "search_analysis_errors": "Cari error analisis...",
+        "search_generation_errors": "Cari error generate...",
+        "pagination_prev": "Sebelumnya",
+        "pagination_next": "Berikutnya",
+        "pagination_info": "Halaman {page} dari {total_pages} ({total_rows} baris)",
     },
 }
 
@@ -298,6 +349,10 @@ def init_db():
             title TEXT,
             prompt TEXT NOT NULL,
             content TEXT,
+            contract_value INTEGER,
+            start_date TEXT,
+            end_date TEXT,
+            duration_days INTEGER,
             pdf_filename TEXT,
             status TEXT DEFAULT 'pending',
             language TEXT DEFAULT 'en',
@@ -320,6 +375,10 @@ def init_db():
         for row in conn.execute("PRAGMA table_info(generated_contracts)").fetchall()
     }
     schema_updates = {
+        "contract_value": "INTEGER",
+        "start_date": "TEXT",
+        "end_date": "TEXT",
+        "duration_days": "INTEGER",
         "source_type": "TEXT DEFAULT 'generation'",
         "template_type": "TEXT DEFAULT 'general'",
         "source_name": "TEXT",
@@ -372,6 +431,10 @@ def process_analysis_job(job_id, file_path, contract_id=None):
             logger.warning(f"Analysis job {job_id}: No contract_id provided, defaulting to 'en'")
         
         result = analyze_contract(text, language=language)
+        structured = _extract_structured_fields_from_text(
+            text,
+            fallback_created_at=job.get("created_at"),
+        )
 
         job["status"] = "completed"
         job["result"] = result
@@ -382,7 +445,8 @@ def process_analysis_job(job_id, file_path, contract_id=None):
             conn.execute(
                 """
                 UPDATE generated_contracts
-                SET status = ?, content = ?, analysis_json = ?, completed_at = ?
+                SET status = ?, content = ?, analysis_json = ?, completed_at = ?,
+                    contract_value = ?, start_date = ?, end_date = ?, duration_days = ?
                 WHERE id = ?
                 """,
                 (
@@ -390,6 +454,10 @@ def process_analysis_job(job_id, file_path, contract_id=None):
                     json.dumps(result, ensure_ascii=False, indent=2),
                     json.dumps(result, ensure_ascii=False),
                     job["completed_at"],
+                    structured["contract_value"],
+                    structured["start_date"],
+                    structured["end_date"],
+                    structured["duration_days"],
                     contract_id,
                 ),
             )
@@ -413,7 +481,7 @@ def process_analysis_job(job_id, file_path, contract_id=None):
 def process_contract_job(contract_id):
     conn = get_db_connection()
     contract = conn.execute(
-        "SELECT id, user_id, title, prompt, language, template_type FROM generated_contracts WHERE id = ?",
+        "SELECT id, user_id, title, prompt, language, template_type, created_at FROM generated_contracts WHERE id = ?",
         (contract_id,),
     ).fetchone()
     conn.close()
@@ -435,6 +503,10 @@ def process_contract_job(contract_id):
             language=contract["language"],
             template_type=contract["template_type"] or "general",
         )
+        structured = _extract_structured_fields_from_text(
+            f"{contract['prompt'] or ''}\n{result}",
+            fallback_created_at=contract["created_at"],
+        )
 
         completed_at = datetime.utcnow().isoformat(timespec="seconds")
         pdf_filename = f"contract_{contract['user_id']}_{uuid.uuid4().hex}.pdf"
@@ -445,10 +517,21 @@ def process_contract_job(contract_id):
         conn.execute(
             """
             UPDATE generated_contracts
-            SET status = ?, content = ?, pdf_filename = ?, completed_at = ?
+            SET status = ?, content = ?, pdf_filename = ?, completed_at = ?,
+                contract_value = ?, start_date = ?, end_date = ?, duration_days = ?
             WHERE id = ?
             """,
-            ("finished", result, pdf_filename, completed_at, contract_id),
+            (
+                "finished",
+                result,
+                pdf_filename,
+                completed_at,
+                structured["contract_value"],
+                structured["start_date"],
+                structured["end_date"],
+                structured["duration_days"],
+                contract_id,
+            ),
         )
         conn.commit()
         conn.close()
@@ -477,7 +560,8 @@ def get_user_contract_items(user_id):
     conn = get_db_connection()
     contracts = conn.execute(
         """
-        SELECT id, title, status, review_status, review_note, source_type, created_at, completed_at, pdf_filename
+        SELECT id, title, prompt, content, status, review_status, review_note, source_type, created_at, completed_at, pdf_filename,
+               contract_value, start_date, end_date, duration_days
         FROM generated_contracts
         WHERE user_id = ?
         ORDER BY id DESC
@@ -486,23 +570,342 @@ def get_user_contract_items(user_id):
     ).fetchall()
     conn.close()
 
+    now_utc = datetime.utcnow()
     items = []
     for contract in contracts:
+        contract_dict = {
+            "title": contract["title"] or "",
+            "prompt": contract["prompt"] or "",
+            "content": contract["content"] or "",
+            "created_at": contract["created_at"],
+            "start_date": contract["start_date"],
+            "end_date": contract["end_date"],
+            "duration_days": contract["duration_days"],
+        }
         items.append(
             {
                 "contract_id": contract["id"],
                 "id": contract["id"],
                 "title": contract["title"] or "Untitled Contract",
+                "prompt": contract["prompt"] or "",
+                "content": contract["content"] or "",
                 "status": contract["status"],
                 "review_status": contract["review_status"],
                 "review_note": contract["review_note"],
                 "source_type": contract["source_type"] or "generation",
+                "contract_value": contract["contract_value"],
+                "start_date": contract["start_date"],
+                "end_date": contract["end_date"],
+                "duration_days": contract["duration_days"],
+                "time_left_display": _time_left_to_expiration(contract_dict, now_utc),
                 "created_at": contract["created_at"],
                 "completed_at": contract["completed_at"],
                 "pdf_filename": contract["pdf_filename"],
             }
         )
     return items
+
+
+def _extract_contract_value(text):
+    if not text:
+        return 0
+
+    # Match common money formats like Rp 10.000.000, IDR 500000, $15000, USD 1000
+    money_pattern = re.compile(r"(?:\b(?:rp|idr|usd)\b|\$)\s*([\d][\d\.,]*)", re.IGNORECASE)
+    values = []
+    for match in money_pattern.finditer(text):
+        numeric = re.sub(r"[^\d]", "", match.group(1))
+        if numeric:
+            values.append(int(numeric))
+
+    # Use the largest monetary figure as contract value heuristic.
+    return max(values) if values else 0
+
+
+def _extract_duration_days(text):
+    if not text:
+        return None
+
+    duration_pattern = re.compile(
+        r"(\d+)\s*(day|days|hari|month|months|bulan|year|years|tahun)",
+        re.IGNORECASE,
+    )
+    match = duration_pattern.search(text)
+    if not match:
+        return None
+
+    count = int(match.group(1))
+    unit = match.group(2).lower()
+    if unit in {"day", "days", "hari"}:
+        return count
+    if unit in {"month", "months", "bulan"}:
+        return count * 30
+    if unit in {"year", "years", "tahun"}:
+        return count * 365
+    return None
+
+
+def _parse_date_token(token):
+    if not token:
+        return None
+
+    token = token.strip()
+
+    try:
+        if re.match(r"^\d{4}-\d{2}-\d{2}$", token):
+            return datetime.fromisoformat(token).date().isoformat()
+    except ValueError:
+        return None
+
+    slash_match = re.match(r"^(\d{1,2})[/-](\d{1,2})[/-](\d{2,4})$", token)
+    if slash_match:
+        day = int(slash_match.group(1))
+        month = int(slash_match.group(2))
+        year = int(slash_match.group(3))
+        if year < 100:
+            year += 2000
+        try:
+            return datetime(year, month, day).date().isoformat()
+        except ValueError:
+            return None
+
+    month_map = {
+        "jan": 1,
+        "january": 1,
+        "januari": 1,
+        "feb": 2,
+        "february": 2,
+        "februari": 2,
+        "mar": 3,
+        "march": 3,
+        "maret": 3,
+        "apr": 4,
+        "april": 4,
+        "mei": 5,
+        "may": 5,
+        "jun": 6,
+        "june": 6,
+        "juni": 6,
+        "jul": 7,
+        "july": 7,
+        "juli": 7,
+        "aug": 8,
+        "august": 8,
+        "agustus": 8,
+        "sep": 9,
+        "sept": 9,
+        "september": 9,
+        "oct": 10,
+        "okt": 10,
+        "october": 10,
+        "oktober": 10,
+        "nov": 11,
+        "november": 11,
+        "dec": 12,
+        "des": 12,
+        "december": 12,
+        "desember": 12,
+    }
+    text_match = re.match(r"^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})$", token)
+    if text_match:
+        day = int(text_match.group(1))
+        month_name = text_match.group(2).lower()
+        year = int(text_match.group(3))
+        month = month_map.get(month_name)
+        if month:
+            try:
+                return datetime(year, month, day).date().isoformat()
+            except ValueError:
+                return None
+
+    return None
+
+
+def _extract_labeled_date(text, labels):
+    if not text:
+        return None
+
+    date_token_pattern = r"(\d{4}-\d{2}-\d{2}|\d{1,2}[/-]\d{1,2}[/-]\d{2,4}|\d{1,2}\s+[A-Za-z]+\s+\d{4})"
+    for label in labels:
+        pattern = re.compile(rf"{label}[^\n]{{0,50}}?{date_token_pattern}", re.IGNORECASE)
+        match = pattern.search(text)
+        if match:
+            parsed = _parse_date_token(match.group(1))
+            if parsed:
+                return parsed
+    return None
+
+
+def _extract_structured_fields_from_text(text, fallback_created_at=None):
+    content = text or ""
+
+    contract_value = _extract_contract_value(content)
+    contract_value = contract_value if contract_value > 0 else None
+
+    duration_days = _extract_duration_days(content)
+    start_date = _extract_labeled_date(
+        content,
+        [
+            r"start\s+date",
+            r"effective\s+date",
+            r"commencement\s+date",
+            r"tanggal\s+mulai",
+            r"tanggal\s+berlaku",
+        ],
+    )
+    end_date = _extract_labeled_date(
+        content,
+        [
+            r"end\s+date",
+            r"expiry\s+date",
+            r"expiration\s+date",
+            r"tanggal\s+berakhir",
+            r"berakhir\s+pada",
+        ],
+    )
+
+    if not (start_date and end_date):
+        date_token_pattern = re.compile(
+            r"(\d{4}-\d{2}-\d{2}|\d{1,2}[/-]\d{1,2}[/-]\d{2,4}|\d{1,2}\s+[A-Za-z]+\s+\d{4})"
+        )
+        parsed_dates = []
+        for match in date_token_pattern.finditer(content):
+            parsed = _parse_date_token(match.group(1))
+            if parsed and parsed not in parsed_dates:
+                parsed_dates.append(parsed)
+        if parsed_dates:
+            if not start_date:
+                start_date = parsed_dates[0]
+            if len(parsed_dates) > 1 and not end_date:
+                end_date = parsed_dates[1]
+
+    if not start_date and fallback_created_at:
+        try:
+            start_date = datetime.fromisoformat(fallback_created_at).date().isoformat()
+        except ValueError:
+            pass
+
+    if start_date and duration_days and not end_date:
+        try:
+            start_dt = datetime.fromisoformat(start_date)
+            end_date = (start_dt + timedelta(days=duration_days)).date().isoformat()
+        except ValueError:
+            pass
+
+    if start_date and end_date and not duration_days:
+        try:
+            start_dt = datetime.fromisoformat(start_date)
+            end_dt = datetime.fromisoformat(end_date)
+            diff = (end_dt - start_dt).days
+            if diff > 0:
+                duration_days = diff
+        except ValueError:
+            pass
+
+    return {
+        "contract_value": contract_value,
+        "start_date": start_date,
+        "end_date": end_date,
+        "duration_days": duration_days,
+    }
+
+
+def _is_contract_expired(contract, now_utc):
+    end_date = contract.get("end_date")
+    if end_date:
+        try:
+            return now_utc.date() > datetime.fromisoformat(end_date).date()
+        except ValueError:
+            pass
+
+    start_date = contract.get("start_date")
+    duration_days = contract.get("duration_days")
+    if start_date and duration_days:
+        try:
+            start_at = datetime.fromisoformat(start_date)
+            return (now_utc - start_at).days > int(duration_days)
+        except (ValueError, TypeError):
+            pass
+
+    created_at = contract.get("created_at")
+    if not created_at:
+        return False
+
+    try:
+        start_at = datetime.fromisoformat(created_at)
+    except ValueError:
+        return False
+
+    text = " ".join(
+        [
+            contract.get("title") or "",
+            contract.get("prompt") or "",
+            contract.get("content") or "",
+        ]
+    )
+    duration_days = _extract_duration_days(text)
+    if not duration_days:
+        return False
+
+    return (now_utc - start_at).days > duration_days
+
+
+def _resolve_contract_end_date(contract):
+    end_date = contract.get("end_date")
+    if end_date:
+        try:
+            return datetime.fromisoformat(end_date).date()
+        except ValueError:
+            pass
+
+    start_date = contract.get("start_date")
+    duration_days = contract.get("duration_days")
+    if start_date and duration_days:
+        try:
+            start_at = datetime.fromisoformat(start_date)
+            return (start_at + timedelta(days=int(duration_days))).date()
+        except (ValueError, TypeError):
+            pass
+
+    created_at = contract.get("created_at")
+    if created_at:
+        try:
+            start_at = datetime.fromisoformat(created_at)
+            text = " ".join(
+                [
+                    contract.get("title") or "",
+                    contract.get("prompt") or "",
+                    contract.get("content") or "",
+                ]
+            )
+            duration_guess = _extract_duration_days(text)
+            if duration_guess:
+                return (start_at + timedelta(days=duration_guess)).date()
+        except ValueError:
+            pass
+
+    return None
+
+
+def _time_left_to_expiration(contract, now_utc):
+    end_date = _resolve_contract_end_date(contract)
+    if not end_date:
+        return "-"
+
+    days_left = (end_date - now_utc.date()).days
+    if days_left < 0:
+        return tr("expired")
+    if days_left == 0:
+        return tr("expires_today")
+    return tr("days_left").format(days=days_left)
+
+
+def _format_idr(amount):
+    try:
+        amount_int = int(amount)
+    except (TypeError, ValueError):
+        amount_int = 0
+    return f"Rp {amount_int:,}".replace(",", ".")
 
 
 def get_combined_job_metrics(user_id):
@@ -537,6 +940,43 @@ def get_combined_job_metrics(user_id):
     analysis_jobs.sort(key=lambda item: item.get("created_at") or "", reverse=True)
     generation_jobs.sort(key=lambda item: item.get("created_at") or "", reverse=True)
 
+    now_utc = datetime.utcnow()
+    non_error_contracts = [c for c in contract_items if (c.get("status") or "").lower() != "error"]
+    rejected_contracts = [
+        c for c in non_error_contracts if (c.get("review_status") or "pending").lower() == "rejected"
+    ]
+    pending_contracts = [
+        c for c in non_error_contracts if (c.get("review_status") or "pending").lower() == "pending"
+    ]
+    expired_contracts = [c for c in non_error_contracts if _is_contract_expired(c, now_utc)]
+    active_contracts = [
+        c
+        for c in non_error_contracts
+        if (c.get("review_status") or "pending").lower() == "accepted" and not _is_contract_expired(c, now_utc)
+    ]
+
+    accepted_contracts = [
+        c for c in non_error_contracts if (c.get("review_status") or "pending").lower() == "accepted"
+    ]
+    accepted_value_total = 0
+    for contract in accepted_contracts:
+        structured_value = contract.get("contract_value")
+        if structured_value is not None:
+            try:
+                accepted_value_total += int(structured_value)
+                continue
+            except (TypeError, ValueError):
+                pass
+
+        text = " ".join(
+            [
+                contract.get("title") or "",
+                contract.get("prompt") or "",
+                contract.get("content") or "",
+            ]
+        )
+        accepted_value_total += _extract_contract_value(text)
+
     return {
         "total_jobs": total_jobs,
         "completed_jobs": completed_jobs,
@@ -544,6 +984,13 @@ def get_combined_job_metrics(user_id):
         "analysis_jobs": analysis_jobs,
         "generation_jobs": generation_jobs,
         "contract_items": contract_items,
+        "accepted_value_total": accepted_value_total,
+        "accepted_value_total_display": _format_idr(accepted_value_total),
+        "non_error_contracts_count": len(non_error_contracts),
+        "active_contracts_count": len(active_contracts),
+        "rejected_contracts_count": len(rejected_contracts),
+        "pending_contracts_count": len(pending_contracts),
+        "expired_contracts_count": len(expired_contracts),
     }
 
 
@@ -868,6 +1315,7 @@ def dashboard():
         total_jobs=metrics["total_jobs"],
         completed_jobs=metrics["completed_jobs"],
         processing_jobs=metrics["processing_jobs"],
+        accepted_value_total_display=metrics["accepted_value_total_display"],
         analysis_jobs=metrics["analysis_jobs"],
         generation_jobs=metrics["generation_jobs"],
     )
@@ -883,6 +1331,12 @@ def monitoring():
         total_jobs=metrics["total_jobs"],
         completed_jobs=metrics["completed_jobs"],
         processing_jobs=metrics["processing_jobs"],
+        accepted_value_total_display=metrics["accepted_value_total_display"],
+        non_error_contracts_count=metrics["non_error_contracts_count"],
+        active_contracts_count=metrics["active_contracts_count"],
+        rejected_contracts_count=metrics["rejected_contracts_count"],
+        pending_contracts_count=metrics["pending_contracts_count"],
+        expired_contracts_count=metrics["expired_contracts_count"],
     )
 
 

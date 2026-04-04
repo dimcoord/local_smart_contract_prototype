@@ -161,7 +161,7 @@
 
         .cards {
             display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
+            grid-template-columns: repeat(4, minmax(0, 1fr));
             gap: 14px;
             margin-bottom: 22px;
         }
@@ -450,6 +450,10 @@
                     <h3>{{ t("processing_jobs") }}</h3>
                     <p>{{ processing_jobs }}</p>
                 </div>
+                <div class="card">
+                    <h3>{{ t("total_accepted_contract_value") }}</h3>
+                    <p>{{ accepted_value_total_display }}</p>
+                </div>
             </section>
 
             <section class="actions">
@@ -462,7 +466,7 @@
                 {% set active_analysis_jobs = analysis_jobs|rejectattr('status', 'equalto', 'error')|list %}
                 {% if active_analysis_jobs %}
                     <div class="table-tools">
-                        <input class="table-search" data-target="dashboard-analysis-table" placeholder="Search analysis jobs..." type="text">
+                        <input class="table-search" data-target="dashboard-analysis-table" placeholder="{{ t('search_analysis_jobs') }}" type="text">
                     </div>
                     <table id="dashboard-analysis-table" class="paginated-table" data-page-size="5">
                         <thead>
@@ -515,7 +519,7 @@
                 {% set active_generation_jobs = generation_jobs|rejectattr('status', 'equalto', 'error')|list %}
                 {% if active_generation_jobs %}
                     <div class="table-tools">
-                        <input class="table-search" data-target="dashboard-generation-table" placeholder="Search generated contracts..." type="text">
+                        <input class="table-search" data-target="dashboard-generation-table" placeholder="{{ t('search_generated_contracts') }}" type="text">
                     </div>
                     <table id="dashboard-generation-table" class="paginated-table" data-page-size="5">
                         <thead>
@@ -562,11 +566,11 @@
             </section>
 
             <section class="jobs-panel">
-                <div class="jobs-head">{{ t("analysis") }} Error Contracts</div>
+                <div class="jobs-head">{{ t("analysis") }} {{ t("error_contracts") }}</div>
                 {% set analysis_error_jobs = analysis_jobs|selectattr('status', 'equalto', 'error')|list %}
                 {% if analysis_error_jobs %}
                     <div class="table-tools">
-                        <input class="table-search" data-target="dashboard-analysis-error-table" placeholder="Search analysis errors..." type="text">
+                        <input class="table-search" data-target="dashboard-analysis-error-table" placeholder="{{ t('search_analysis_errors') }}" type="text">
                     </div>
                     <table id="dashboard-analysis-error-table" class="paginated-table" data-page-size="5">
                         <thead>
@@ -588,16 +592,16 @@
                     </table>
                     <div class="table-pagination" data-target="dashboard-analysis-error-table"></div>
                 {% else %}
-                    <div class="empty-state">No analysis errors.</div>
+                    <div class="empty-state">{{ t("no_analysis_errors") }}</div>
                 {% endif %}
             </section>
 
             <section class="jobs-panel">
-                <div class="jobs-head">{{ t("generation") }} Error Contracts</div>
+                <div class="jobs-head">{{ t("generation") }} {{ t("error_contracts") }}</div>
                 {% set generation_error_jobs = generation_jobs|selectattr('status', 'equalto', 'error')|list %}
                 {% if generation_error_jobs %}
                     <div class="table-tools">
-                        <input class="table-search" data-target="dashboard-generation-error-table" placeholder="Search generation errors..." type="text">
+                        <input class="table-search" data-target="dashboard-generation-error-table" placeholder="{{ t('search_generation_errors') }}" type="text">
                     </div>
                     <table id="dashboard-generation-error-table" class="paginated-table" data-page-size="5">
                         <thead>
@@ -619,13 +623,17 @@
                     </table>
                     <div class="table-pagination" data-target="dashboard-generation-error-table"></div>
                 {% else %}
-                    <div class="empty-state">No generation errors.</div>
+                    <div class="empty-state">{{ t("no_generation_errors") }}</div>
                 {% endif %}
             </section>
         </main>
     </div>
     <script>
         (function () {
+            const paginationPrevLabel = '{{ t("pagination_prev") }}';
+            const paginationNextLabel = '{{ t("pagination_next") }}';
+            const paginationInfoTemplate = '{{ t("pagination_info") }}';
+
             function initTable(table) {
                 const tableId = table.id;
                 const tbody = table.tBodies[0];
@@ -656,7 +664,7 @@
                     const prevBtn = document.createElement('button');
                     prevBtn.type = 'button';
                     prevBtn.className = 'page-btn';
-                    prevBtn.textContent = 'Prev';
+                    prevBtn.textContent = paginationPrevLabel;
                     prevBtn.disabled = currentPage <= 1;
                     prevBtn.addEventListener('click', function () {
                         if (currentPage > 1) {
@@ -668,7 +676,7 @@
                     const nextBtn = document.createElement('button');
                     nextBtn.type = 'button';
                     nextBtn.className = 'page-btn';
-                    nextBtn.textContent = 'Next';
+                    nextBtn.textContent = paginationNextLabel;
                     nextBtn.disabled = currentPage >= totalPages;
                     nextBtn.addEventListener('click', function () {
                         if (currentPage < totalPages) {
@@ -679,7 +687,10 @@
 
                     const info = document.createElement('span');
                     info.className = 'page-info';
-                    info.textContent = 'Page ' + currentPage + ' of ' + totalPages + ' (' + totalRows + ' rows)';
+                    info.textContent = paginationInfoTemplate
+                        .replace('{page}', String(currentPage))
+                        .replace('{total_pages}', String(totalPages))
+                        .replace('{total_rows}', String(totalRows));
 
                     paginationEl.appendChild(prevBtn);
                     paginationEl.appendChild(nextBtn);

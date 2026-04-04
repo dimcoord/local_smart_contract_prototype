@@ -370,6 +370,10 @@
 
                 <div class="panel">
                     <h2>{{ t("contract_details") }}</h2>
+                    {% set contract_value_display = "-" %}
+                    {% if contract and contract.contract_value is not none %}
+                        {% set contract_value_display = ("Rp {:,}".format(contract.contract_value)).replace(",", ".") %}
+                    {% endif %}
                     <ul class="detail-list">
                         <li><span class="label">{{ t("type") }}</span> <span class="value">{{ result.contract_type }}</span></li>
                         <li><span class="label">{{ t("parties") }}</span> <span class="value">{{ result.parties }}</span></li>
@@ -379,6 +383,10 @@
                         <li><span class="label">{{ t("payment_terms") }}</span> <span class="value">{{ result.payment_terms }}</span></li>
                         <li><span class="label">{{ t("risk_level") }}</span> <span class="value">{{ result.risk_level }}</span></li>
                         <li><span class="label">{{ t("risk_analysis") }}</span> <span class="value">{{ result.risk_analysis }}</span></li>
+                        <li><span class="label">{{ t("contract_value") }}</span> <span class="value">{{ contract_value_display }}</span></li>
+                        <li><span class="label">{{ t("start_date") }}</span> <span class="value">{{ contract.start_date if contract and contract.start_date else '-' }}</span></li>
+                        <li><span class="label">{{ t("end_date") }}</span> <span class="value">{{ contract.end_date if contract and contract.end_date else '-' }}</span></li>
+                        <li><span class="label">{{ t("duration_days") }}</span> <span class="value">{{ contract.duration_days if contract and contract.duration_days is not none else '-' }}</span></li>
                     </ul>
 
                     {% if contract %}
